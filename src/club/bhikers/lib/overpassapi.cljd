@@ -51,9 +51,10 @@
         (.close ^dio/Dio (get apis :instance2))
         this)
 
-      (query [_ latlon osm-tag radius]
+      (query [_ latlon osm-tags radius]
         (let [[lat lon] latlon
-              query (str "data=[out:json];node[" osm-tag "](around:" radius "," lat "," lon ");out;")
+              tags-quey (apply str (interpose ";"  (map #(str "node[" % "](around:" radius "," lat "," lon ")") osm-tags)))
+              query (str "data=[out:json][timeout:"@api-query-timeout"];(" tags-quey ";);out;")
               try-request (fn [api-instance]
                             (try
                               (log "Will request: " (-> ^dio/Dio api-instance .-options .-baseUrl) query)

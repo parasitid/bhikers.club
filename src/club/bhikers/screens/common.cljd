@@ -98,19 +98,13 @@
                                             (let [nb-notifs (count *notifs)]
                                               (if (< 0 nb-notifs)
                                                 [(f/widget
-                                                  (m/Positioned .right 10 .top 10)
+                                                  (m/Positioned .right 12 .top 12)
                                                   (m/Container  .padding (m/EdgeInsets.all 5)
                                                                 .decoration (m/BoxDecoration
                                                                              .shape m/BoxShape.circle
                                                                              .color m/Colors.red)
                                                                 .constraints (m/BoxConstraints
-                                                                              .minWidth 12
-                                                                              .minHeight 12))
-                                                  (m/Text (str nb-notifs)
-                                                          .textAlign m/TextAlign.center
-                                                          .style (m/TextStyle
-                                                                  .fontWeight m/FontWeight.bold
-                                                                  .fontSize 8
-                                                                  .color m/Colors.white)))]
+                                                                              .minWidth 5
+                                                                              .minHeight 5)))]
                                                 [])))))]
                       additional-actions)))
