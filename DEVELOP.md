@@ -12,7 +12,7 @@ Ensure you have [Nix](https://nixos.org/download.html) installed on your system.
 
 2. **Enter the development shell**:
    ```sh
-   nix develop
+   nix develop --impure
    ```
 To enable Nix flakes, add the following to your Nix configuration file (`~/.config/nix/nix.conf` or `/etc/nix/nix.conf`):
 
@@ -30,12 +30,30 @@ experimental-features = nix-command flakes
 
 2. **Compile CLJD code**:
    ```sh
+   make compile
+   ```
+   or
+
+   ```sh
    clj -M:cljd compile
    ```
 
 3. **Build the APK for release**:
    ```sh
+   make apk-release
+   ```
+   or 
+   
+   ```sh
    flutter build apk --release
    ```
 
+
 This will generate the final APK in the `build/app/outputs/flutter-apk/` directory.
+
+
+## Launching android emulator
+   
+   ```sh
+   android-studio
+   ```

@@ -1,0 +1,13 @@
+title: Bhikers Club
+email: parasitid@bhikers.club
+description: >- # this means to ignore newlines until "baseurl:"
+   **Bhikers club** is a free and privacy-focused Android & iOS mobile app for
+   cyclists and hikers, based on OpenStreetMap data and services. It helps you locate
+   essential spots while on the road, whether you need a **restaurant**, a **bakery**,
+   a **hotel**,  a **camping site**, a **shelter**, or a **water fountain**.
+baseurl: ""
+url: "https://bhikers.club"
+github_username:  parasitid
+theme: minima
+plugins:
+  - jekyll-feed

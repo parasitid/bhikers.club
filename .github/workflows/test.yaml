@@ -34,6 +34,6 @@ jobs:
       - name: This is where the magic is happening
         shell: bash
         run: |
-          nix develop --command flutter doctor
+          nix develop --impure --command flutter doctor
           # always clean & compile to enforce generated dart code is sane
-          nix develop --command make test
+          nix develop --impure --command make test
