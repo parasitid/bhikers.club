@@ -20,7 +20,7 @@
 
 ## 🛠 Fonctionnalités
 - ✅ Trouver des **restaurants, boulangeries, hôtels, campings, abris, fontaines d’eau...** à proximité
-- ❌ **Partager avec une appli de navigation GPS** – *Bientôt disponible !*
+- ✅ **Partager avec une appli de navigation GPS**
 - ❌ **Mode hors ligne** – *Bientôt disponible !*
 - ❌ **Améliorer les fichiers GPX** – *Bientôt disponible !*
 - ❌ **Taguer les POIs bike_friend** – *Bientôt disponible !*

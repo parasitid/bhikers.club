@@ -36,9 +36,19 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk \
             club.bhikers.bhikersclub_${BUILD_ID}.apk
 
-      - name: "Upload Artifact"
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
         with:
-          name: APK
-          path: "*.apk"
-          if-no-files-found: error
+          files: "*.apk"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload the APK to the release as a release asset
+      - name: Upload APK to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: club.bhikers.bhikersclub_${{ github.ref_name }}+${{ github.run_number }}.apk
+          asset_name: club.bhikers.bhikersclub_${{ github.ref_name }}+${{ github.run_number }}.apk
+          asset_content_type: application/vnd.android.package-archive

@@ -57,9 +57,9 @@ jobs:
           cp build/app/outputs/flutter-ipa/app-release.ipa \
             club.bhikers.bhikersclub_${BUILD_ID}.aip
 
-      - name: "Upload Artifact"
-        uses: actions/upload-artifact@v4
-        with:
-          name: IPA
-          path: "*.IPA"
-          if-no-files-found: error
+      # - name: "Upload Artifact"
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: IPA
+      #     path: "*.IPA"
+      #     if-no-files-found: error
