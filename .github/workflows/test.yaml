@@ -1,0 +1,40 @@
+---
+name: bhikers.club app test CI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - .gitignore
+      - .github/**
+      - '!.github/workflows/beta-android.yaml'  # Run check on self change
+      - '**/*_tests/**'
+      - '**/CMakeLists.txt'
+      - CONTRIBUTORS
+      - LICENSE
+      - README**.md
+      - docs/**
+      - misc/**
+      - ios/**
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: This is where the magic is happening
+        shell: bash
+        run: |
+          nix develop --command flutter doctor
+          # always clean & compile to enforce generated dart code is sane
+          nix develop --command clj -M:cljd clean compile
+          nix develop --command flutter test
