@@ -25,7 +25,7 @@
 
 (defonce api-query-timeout
   (atom (int/tryParse (#/(.getValue String) Settings "/advanced/api_query_timeout"
-                         .defaultValue "5"))))
+                         .defaultValue "3"))))
 (defonce pois-radius
   (atom (#/(.getValue double) Settings "/general/pois_radius"
            .defaultValue 1000)))

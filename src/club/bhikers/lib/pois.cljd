@@ -1,12 +1,9 @@
 (ns club.bhikers.lib.pois
   (:require
-   ["package:dio/dio.dart" :as dio]
-   ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
-   [club.bhikers.lib.notifications :refer [debug-notif]]
-   [club.bhikers.lib.app :refer [api-query-timeout]]
    ["package:url_launcher/url_launcher.dart" :refer [canLaunchUrl launchUrl LaunchMode]]
    ["package:maps_launcher/maps_launcher.dart" :refer [MapsLauncher]]
-   [club.bhikers.lib.utils :refer [log uuid-v5]]))
+   [club.bhikers.lib.utils :refer [log]]
+   [club.bhikers.lib.overpassapi :as oapi]))
 
 (defonce poi-types->osm-tags {"shelters" "amenity=shelter"
                               "hotels" "tourism=hotel"
@@ -19,64 +16,24 @@
 
 (defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
 
-(defn create-dio-instance ^dio/Dio [base-url cache-store]
-  (log "create dio instance for url " base-url)
-  (let [api (dio/Dio
-             (dio/BaseOptions .baseUrl base-url
-                              .connectTimeout (Duration .seconds @api-query-timeout)
-                              .receiveTimeout (Duration .seconds @api-query-timeout)))]
-    (doto (.-interceptors api)
-      (.add (cache/DioCacheInterceptor
-             .options (cache/CacheOptions
-                       .store cache-store
-                       .policy cache/CachePolicy.forceCache
-                       .hitCacheOnErrorExcept [401 403]
-                       .maxStale (Duration .days 1)
-                       .priority cache/CachePriority.normal
-                       .allowPostMethod false
-                       .keyBuilder (fn [^dio/RequestOptions req-opts]
-                                     (let [cache-key (->> req-opts
-                                                          .-uri
-                                                          .toString
-                                                          (uuid-v5))]
-                                       cache-key)))))
-      (.add (dio/LogInterceptor)))
-    api))
-
-(defn new-overpass-api ^dio/Dio [cache-store]
-  (create-dio-instance "https://overpass-api.de/api/interpreter?" cache-store))
-
-(defn overpass-query [api [lat lon] poi-type & {:keys [radius] :or {radius 5000}}]
-  (let [osm-tag (poi-type->osm-tag poi-type)
-        query (str "data=[out:json];node[" osm-tag "](around:" radius "," lat "," lon ");out;")
-        response (try
-                   (log "Will request overpass-api.de with " query)
-                   (await (.get ^dio/Dio api query))
-                   (catch dio/DioException e
-                     (do (log "Exception! " e)
-                         (debug-notif "overpass-api.de is currently having issues...")
-                         nil)))]
-    (when response
-      (let [{{elements "elements"} .-data} ^dio/Response response]
-       (log "elements fetched from api: " elements)
-       elements))))
 
 (defn dynamic-map-pois [map-state overpass-api]
- (let [pois (atom [])]
-   (add-watch map-state :refresh-pois
-         (fn [_ _ old-state new-state]
-           (when (not= (select-keys old-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?])
-                       (select-keys new-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?]))
-             (debug-notif "refreshing pois!")
-             (let [{:keys [radius selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
-               (when (or (and current-pos-as-center? current-pos) current-center)
-                 (let [results (await (overpass-query overpass-api
-                                                      (if (and current-pos-as-center? current-pos) current-pos current-center)
-                                                      selected-poi-type :radius radius))]
-                   (if results
-                     (reset! pois results)
-                     (debug-notif "no pois fetched! map-state was: " new-state))))))))
-   pois))
+  (let [pois (atom [])]
+    (add-watch map-state :refresh-pois
+               (fn [_ _ old-state new-state]
+                 (when (not= (select-keys old-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?])
+                             (select-keys new-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?]))
+                   (log "refreshing pois!")
+                   (let [{:keys [radius selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
+                     (when (or (and current-pos-as-center? current-pos) current-center)
+                       (let [results (await (oapi/query overpass-api
+                                                   (if (and current-pos-as-center? current-pos) current-pos current-center)
+                                                   (poi-type->osm-tag selected-poi-type)
+                                                   radius))]
+                         (if results
+                           (reset! pois results)
+                           (log "no pois fetched! map-state was: " new-state))))))))
+    pois))
 
 (defn route-to-poi [poi]
   (-> MapsLauncher (.launchCoordinates (get poi "lat") (get poi "lon"))))

@@ -59,49 +59,36 @@
          .max max-pois-radius
          .divisions 5
          .label (str transient-radius "m")
-         .onChanged #(swap! map-state assoc :transient-radius (.round %))
+         .onChanged #(swap! map-state assoc :transient-radius (.round ^double %))
          .onChangeEnd (fn [_] (swap! map-state assoc :radius transient-radius)))])]))))
 
   ; Filter out blacklisted keys
 
 (defonce priority-list ["name" "phone" "contact:phone" "website" "email"])
-(defonce converters
-  {
-   "phone" (fn [value] (f/widget (Link .uri (Uri.parse (str "tel://" value))
-                                       .target LinkTarget.blank
-                                       .builder (f/build [open-link]
-                                                         (f/widget
-                                                          (m/TextButton.icon .onPressed open-link
-                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
-                                                                             .icon (m/Icon m/Icons.call)))))))
-   "contact:phone" (fn [value] (f/widget (Link .uri (Uri.parse (str "tel://" value))
-                                       .target LinkTarget.blank
-                                       .builder (f/build [open-link]
-                                                         (f/widget
-                                                          (m/TextButton.icon .onPressed open-link
-                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
-                                                                             .icon (m/Icon m/Icons.call)))))))
-   "contact:email" (fn [value] (f/widget (Link .uri (Uri.parse (str "mailto://" value))
-                                       .target LinkTarget.blank
-                                       .builder (f/build [open-link]
-                                                         (f/widget
-                                                          (m/TextButton.icon .onPressed open-link
-                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
-                                                                             .icon (m/Icon m/Icons.email)))))))
-   "email" (fn [value] (f/widget (Link .uri (Uri.parse (str "mailto://" value))
-                                               .target LinkTarget.blank
-                                               .builder (f/build [open-link]
-                                                                 (f/widget
-                                                                  (m/TextButton.icon .onPressed open-link
-                                                                                     .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
-                                                                                     .icon (m/Icon m/Icons.email)))))))
-   "website" (fn [value] (f/widget (Link .uri (Uri.parse value)
-                                       .target LinkTarget.blank
-                                       .builder (f/build [open-link]
-                                                         (f/widget
-                                                          (m/TextButton.icon .onPressed open-link
-                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
-                                                                             .icon (m/Icon m/Icons.open_in_browser)))))))
+
+(defn basic-converter [scheme icon]
+  (fn [value]
+    (f/widget
+     (Link .uri (Uri.parse (str scheme value))
+           .target LinkTarget.blank
+           .builder (f/build [open-link]
+                             (f/widget
+                              (m/TextButton.icon .onPressed open-link
+                                                 .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
+                                                 .icon (m/Icon icon))))))))
+
+(defonce phone-converter (basic-converter "tel://" m/Icons.call))
+(defonce email-converter (basic-converter "mailto://" m/Icons.email))
+(defonce website-converter (basic-converter "" m/Icons.open_in_browser))
+
+(defonce converters {
+   "phone" phone-converter
+   "contact:phone" phone-converter
+   "contact:email" email-converter
+   "contact:website" website-converter
+   "contact:facebook" website-converter
+   "email" email-converter
+   "website" website-converter
    })
 
 (defn tag->widget [[key value]]
@@ -117,8 +104,6 @@
     (concat
      (filter some? prioritized-widgets)    ; Only include non-nil prioritized tags
      other-widgets)))
-
-
 
 ;; modal bottom sheet displaying info about a POI
 (defn around-me-show-poi-info [ctx poi]

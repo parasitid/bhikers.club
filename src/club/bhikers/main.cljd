@@ -9,9 +9,9 @@
             [club.bhikers.screens.enhancegpx :refer [enhance-gpx-screen]]
             [club.bhikers.screens.falldetector :refer [fall-detector-screen]]
             [club.bhikers.lib.app :refer [supported-locales default-locale]]
-            [club.bhikers.lib.pois :refer [new-overpass-api]]
-            [club.bhikers.lib.utils :refer [log create-cache-store]]
-            [club.bhikers.lib.notifications :refer [debug-notif]]
+            [club.bhikers.lib.overpassapi :as oapi]
+            [club.bhikers.lib.utils :refer [log]]
+            [club.bhikers.lib.notifications :refer [notifications]]
             [cljd.flutter :as f]))
 
 ;; Setup Theme of the material app
@@ -42,7 +42,7 @@
   (m/WidgetsFlutterBinding.ensureInitialized)
   (log "init easy l10n")
   (await (l10n/EasyLocalization.ensureInitialized))
-  (debug-notif "starting app")
+  (log "starting app")
   (f/run
     (f/widget
      (l10n/EasyLocalization
@@ -55,10 +55,9 @@
       .path "src/resources/langs")
      (f/widget
       :context ctx
-      :managed [cache-store (create-cache-store 20 (* 1024 1024)) :dispose .close
-                overpass-api (new-overpass-api cache-store)
-                :dispose .close]
-      :bind {:overpass-api overpass-api}
+      :managed [overpass-api (oapi/new-overpass-api) :dispose oapi/dispose!]
+      :bind {:overpass-api overpass-api
+             :notifications notifications}
       (m/MaterialApp
        .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .-localizationDelegates)
        .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .-supportedLocales)
