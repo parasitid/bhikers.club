@@ -1,13 +1,28 @@
 ---
-name: bhikers.club app beta for Android CI
+name: bhikers.club app beta for IOS CI
 
 on:
   push:
-    tags:
-      - 'v*'  # Runs only for version tags like v1.0.0
+    # tags:
+    #   - 'v*'  # Runs only for version tags like v1.0.0
+
+    branches:
+      - main
+    paths-ignore:
+      - .gitignore
+      - .github/**
+      - '!.github/workflows/beta-android.yaml'  # Run check on self change
+      - '**/*_tests/**'
+      - '**/CMakeLists.txt'
+      - CONTRIBUTORS
+      - LICENSE
+      - README**.md
+      - docs/**
+      - misc/**
+      - ios/**
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: macos-15
 
     steps:
       - name: Checkout
@@ -17,6 +32,11 @@ jobs:
         uses: cachix/install-nix-action@v30
         with:
           nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.1'
 
       - name: This is where the magic is happening
         shell: bash
@@ -29,16 +49,17 @@ jobs:
           # always clean & compile to enforce generated dart code is sane
           nix develop --command clj -M:cljd clean
           nix develop --command clj -M:cljd compile
-          nix develop --command flutter build apk \
+          nix develop --command flutter build ipa \
              --release --no-pub --suppress-analytics \
              --build-number "${BUILD_NUMBER}" \
              --build-name "${BUILD_NAME}"
-          cp build/app/outputs/flutter-apk/app-release.apk \
-            club.bhikers.bhikersclub_${BUILD_ID}.apk
+          find build/app/outputs/
+          cp build/app/outputs/flutter-ipa/app-release.ipa \
+            club.bhikers.bhikersclub_${BUILD_ID}.aip
 
       - name: "Upload Artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: APK
-          path: "*.apk"
+          name: IPA
+          path: "*.IPA"
           if-no-files-found: error
