@@ -35,6 +35,7 @@ devshell.mkShell {
   ];
   packages = [
     emacs
+    gnumake
     yq-go
     gradle
     jdk

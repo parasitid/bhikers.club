@@ -34,7 +34,7 @@ rely only on geolocator lastknownposition + position stream as a workaround
 * V0.1 App features
 ** global ui
 ** Around me
-*** TODO share poi with nav app (waze/geovelo/komoot/...)
+*** DONE share poi with nav app (waze/geovelo/komoot/...)
 *** TODO add cache for tiles
 *** TODO show "location currently unknown" overlay message
 *** TODO allow custom overpass tag filter
@@ -52,6 +52,7 @@ rely only on geolocator lastknownposition + position stream as a workaround
 *** TODO create web view to osm account creation/login page
 *** TODO Display user info
 ** tech/debug
+*** TODO add an optional log file for debug
 ** CICD
 *** TODO automate build, release and publish android app on github
 *** TODO automate publish android app on fdroid
@@ -77,4 +78,5 @@ rely only on geolocator lastknownposition + position stream as a workaround
 ** Website
 
 *** DONE domain name ok
-*** TODO ghpages
+*** DONE ghpages
+*** TODO add dl links

@@ -1,0 +1,24 @@
+(ns club.bhikers.screens.settingstest
+  (:require  ["package:flutter_test/flutter_test.dart" :as ft]
+             ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
+             ["package:flutter/material.dart" :as m]
+             ["package:shared_preferences/shared_preferences.dart" :refer [SharedPreferences]]
+             ["package:easy_localization/easy_localization.dart" :as l10n]
+             [club.bhikers.main :refer [BhikersClubApp]]
+             [club.bhikers.lib.utils :refer [log l10n-str]]
+             [cljd.test :as t :refer [deftest is]]))
+
+(deftest titledumbtest
+  :tags [:widget]
+  :runner (ft/testWidgets [tester])
+  (do
+    (-> SharedPreferences (.setMockInitialValues {}))
+    (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+    (m/WidgetsFlutterBinding.ensureInitialized)
+    (await (l10n/EasyLocalization.ensureInitialized))
+    (log "start app for tests")
+    (let [^ft/WidgetTester {:flds [pumpWidget pumpAndSettle]} tester
+          _ (await (pumpWidget (BhikersClubApp "/settings")))
+          _ (await (pumpAndSettle))
+          title-finder (ft/find.text (l10n-str "app.title"))]
+      (ft/expect title-finder ft/findsOneWidget))))

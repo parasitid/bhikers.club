@@ -47,7 +47,7 @@ around_me:
     bottlerefill: "@:common.bottlerefill_emoji @:around_me.poi_types.bottlerefill"
     bakery: "@:common.bakery_emoji @:around_me.poi_types.bakery"
     bikeshop: "@:common.bikeshop_emoji @:around_me.poi_types.bikeshop"
-    toilet: "@:common.toilets_emoji @:around_me.poi_types.toilet"
+    toilet: "@:common.toilet_emoji @:around_me.poi_types.toilet"
 about:
   screen_title: About
   description: Bhikers Club by ParaSitid

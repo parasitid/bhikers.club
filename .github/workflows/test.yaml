@@ -36,5 +36,4 @@ jobs:
         run: |
           nix develop --command flutter doctor
           # always clean & compile to enforce generated dart code is sane
-          nix develop --command clj -M:cljd clean compile
-          nix develop --command flutter test
+          nix develop --command make test
