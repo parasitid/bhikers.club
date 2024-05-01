@@ -20,8 +20,16 @@ this maybe consistent with In the meantime, geolocator low locationaccuracy
 
 
 
+** Fix tests
+
 ** TODO hard to debug app without access to logs when hiking
 should be able to access logs in a file
+
+** TODO P1 fix inkwell on my position
+
+** TODO P1 fix log file
+
+** TODO P1 fix tests
 
 * V0 App features
 ** global ui
@@ -45,16 +53,20 @@ should be able to access logs in a file
 
 * V0.1 App features
 ** global ui
+*** TODO P1 add help
+*** TODO P1 add check for updates
 ** Around me
 *** DONE share poi with nav app (waze/geovelo/komoot/...)
 *** TODO add cache for tiles
 *** TODO show "location currently unknown" overlay message
 *** TODO allow custom overpass tag filter
-*** TODO show attribution widget for osm+overpass
-*** TODO display bike_friends tags with special color and priority
+*** TODO P1 show attribution widget for osm+overpass
+*** KILL display bike_friends tags with special color and priority
 *** TODO tag POI as bike_friend (setup user management first)
 *** DONE on my location double tap, force gps to refresh location
+*** TODO P1 add api error in notifs
 ** Settings
+*** TODO P1 add position refresh settings
 ** About
 *** TODO make credits page
 *** TODO insert frugal app manifesto
@@ -64,8 +76,9 @@ should be able to access logs in a file
 *** TODO associate token with device and display user info
 *** TODO create web view to osm account creation/login page
 *** TODO Display user info
+*** TODO P1 add unlogged mode
 ** tech/debug
-*** TODO add an optional log file for debug
+*** DONE add an optional log file for debug
 ** CICD
 *** TODO automate build, release and publish android app on github
 *** TODO automate publish android app on fdroid
