@@ -1,8 +1,15 @@
 #+title: Roadmap
 
+* Issues
+
+** TODO Map position is not reliable
+it seems that the very first time the app is started and permissions allowed, the
+position (last or current) is fetched instantly. But the next time the app is started fetching
+location is abnormally long
+
 * App features
 ** global ui
-*** TODO setup icon
+*** DONE setup icon
 ** Around me
 *** TODO clusters of POI markers
 *** TODO add radius slider
@@ -17,6 +24,7 @@
 *** DONE long tap to recenter map on custom position
 *** DONE dont reset zoom on my location recenter
 *** TODO show "location currently unknown" overlay message
+*** TODO allow custom overpass tag filter
 ** Settings
 *** TODO setup around me defaults in settings
 ** About
