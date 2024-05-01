@@ -31,7 +31,7 @@ around_me:
     bottlerefills: Recharges de bouteilles
     bakeries: Boulangeries
     bikeshops: Magasins de vélos
-
+    toilets: Toilettes
 about:
   screen_title: À propos
   description: Bhikers Club par ParaSitid
