@@ -20,6 +20,12 @@
 - ❌ **Enhance GPX** – *Coming soon!* 
 - ❌ **Recommand places to the club** – *Coming soon!* 
 
+## 🛠 Work in Progress
+The **Bhikers Club** app is currently in development and is not yet available in app stores. Stay tuned for updates and the official release!
+
+## 🆘 Help Wanted!
+We are currently seeking help to build and test the iOS version of the app. If you are an experienced iOS developer and would like to contribute, please reach out!
+
 ## 📜 Manifestos
 - 🚴 [Bhikers Club Good Fellow Manifesto](src/resources/manifestos/BHIKERS_CLUB_GOOD_FELLOW.en.md)
 - 📱 [The Frugal App Manifesto](src/resources/manifestos/FRUGALAPP_MANIFESTO.en.md)
