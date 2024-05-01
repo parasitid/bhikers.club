@@ -26,7 +26,7 @@ jobs:
           # always clean & compile to enforce generated dart code is sane
           nix develop --impure --command make clean compile apk-release BUILD_NUMBER="${{ github.run_number }}" BUILD_NAME="${{ github.ref_name }}"
           cp build/app/outputs/flutter-apk/app-release.apk \
-            club.bhikers.bhikersclub_${BUILD_ID}.apk
+            club.bhikers.bhikersclub_${{ github.ref_name }}+${{ github.run_number }}.apk
           cp build/app/outputs/flutter-apk/app-release.apk \
             club.bhikers.bhikersclub_latest.apk
 

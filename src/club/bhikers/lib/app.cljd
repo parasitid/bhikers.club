@@ -53,7 +53,7 @@
 (defonce force-debug-mode? (atom false))
 (defonce app-info (atom nil))
 
-(defn init! [& {:keys [mock-mode?] :or {mock-mode? false?}}]
+(defn init! [& {:keys [mock-mode?] :or {mock-mode? false}}]
   (when mock-mode? (-> SharedPreferences (.setMockInitialValues {})))
 
   (m/WidgetsFlutterBinding.ensureInitialized)
