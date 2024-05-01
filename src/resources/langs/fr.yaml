@@ -22,16 +22,22 @@ enhance_gpx:
 around_me:
   screen_title: Autour de moi
   description: Points d'intérêt autour de ma position GPS actuelle
+  no_permission: Veuillez accorder l'autorisation de localisation
   poi_types:
     bhikers: Bhikers
     shelters: Abris
     hotels: Hôtels
     campsites: Campings
     restaurants: Restaurants
-    bottlerefills: Recharges de bouteilles
+    bottlerefills: Eau potable
     bakeries: Boulangeries
     bikeshops: Magasins de vélos
     toilets: Toilettes
 about:
   screen_title: À propos
   description: Bhikers Club par ParaSitid
+common:
+  close: fermer
+  permission-denied: autorisation définitivement refusée pour
+notifications:
+  title: Notifications

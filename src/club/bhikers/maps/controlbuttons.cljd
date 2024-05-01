@@ -17,9 +17,10 @@
                                   zoomOutColor
                                   zoomOutColorIcon
                                   zoomOutIcon
-                                  recenterColor
-                                  recenterColorIcon
-                                  recenterIcon]
+                                  myLocationColor
+                                  myLocationColorIcon
+                                  myLocationIcon
+                                  onMyLocation]
                            :or {minZoom 1
                                 maxZoom 18
                                 mini false
@@ -31,15 +32,15 @@
                                 zoomOutColor nil
                                 zoomOutColorIcon nil
                                 zoomOutIcon  m/Icons.zoom_out
-                                recenterColor nil
-                                recenterColorIcon nil
-                                recenterIcon  m/Icons.my_location}}]
+                                myLocationColor nil
+                                myLocationColorIcon nil
+                                myLocationIcon  m/Icons.my_location
+                                onMyLocation (fn [lat lon] nil)}}]
   (f/widget
    :get [map/MapController
          map/MapCamera
          m/Theme
-         :align-position-stream-controller
-         :map-state]
+         :align-position-stream-controller]
    (m/Align .alignment alignment)
    (m/Column
     .mainAxisSize m/MainAxisSize.min
@@ -62,10 +63,8 @@
                         .child (m/Icon zoomOutIcon .color (or zoomOutColorIcon (-> theme .-iconTheme .-color)))))
      (m/Padding .padding (m/EdgeInsets.all padding)
                 .child (m/FloatingActionButton
-                        .heroTag "recenterButton"
+                        .heroTag "myLocationButton"
                         .mini mini
-                        .backgroundColor (or recenterColor (.-primaryColorLight theme))
-                        .onPressed (fn [] (do
-                                            (.add ^#/(async/StreamController double?) @align-position-stream-controller 12.0)
-                                            (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never)))
-                        .child (m/Icon recenterIcon .color (or recenterColorIcon (-> theme .-iconTheme .-color)))))])))
+                        .backgroundColor (or myLocationColor (.-primaryColorLight theme))
+                        .onPressed onMyLocation
+                        .child (m/Icon myLocationIcon .color (or myLocationColorIcon (-> theme .-iconTheme .-color)))))])))
