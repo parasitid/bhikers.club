@@ -3,8 +3,8 @@
 with pkgs;
 
 let
-  # android-studio is not available in aarch64-darwin and xcode only on darwin
-  conditionalPackages = if pkgs.system != "aarch64-darwin" then [ android-studio ] else [ darwin.xcode ];
+  # android-studio is not available in aarch64-darwin
+  conditionalPackages = if pkgs.system != "aarch64-darwin" then [ android-studio ] else [];
 in
 with pkgs;
 
