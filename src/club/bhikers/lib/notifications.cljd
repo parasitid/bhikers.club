@@ -11,7 +11,7 @@
   (when (debug-mode?)
     (let [msg (apply str args)]
       (log "new notif: " msg)
-      (new-notif (str "🪲: ") msg))))
+      (new-notif (str "🐛") msg))))
 
 (defn dismiss-notif [id]
   (log "dismissing notif " id)

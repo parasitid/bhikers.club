@@ -5,14 +5,33 @@
    [club.bhikers.lib.utils :refer [log]]
    [club.bhikers.lib.overpassapi :as oapi]))
 
-(defonce poi-types->osm-tags {"shelters" "amenity=shelter"
-                              "hotels" "tourism=hotel"
-                              "campsites" "tourism=camp_site"
-                              "restaurants" "amenity=restaurant"
-                              "bakeries" "shop=bakery"
-                              "bikeshops" "shop=bicycle"
-                              "bottlerefills" "fountain=bottle_refill"
-                              "toilets" "amenity=toilets"})
+(defonce poi-types->osm-tags {"shelters" ["amenity=shelter"
+                                          "shelter=yes"
+                                          "shelter_type=weather_shelter"
+                                          "shelter_type=picnic_shelter"
+                                          "tourism=alpine_hut"]
+                              "hotels" ["tourism=hotel"
+                                        "building=hotel"
+                                        "tourism=alpine_hut"
+                                        "tourism=motel"
+                                        "tourism=hostel"
+                                        "tourism=guest_house"]
+                              "campsites" ["tourism=camp_site"
+                                           "tourism=alpine_hut"
+                                           "tourism=caravan_site"
+                                           "tourism=wilderness_hut"]
+                              "restaurants" ["amenity=restaurant"]
+                              "bakeries" ["shop=bakery"
+                                          "cuisine=sandwich"]
+                              "bikeshops" ["shop=bicycle"
+                                           "amenity=bicycle_rental"
+                                           "amenity=bicycle_repair_station"]
+                              "bottlerefills" ["fountain=drinking"
+                                               "fountain=bottle_refill"
+                                               "drinking_water=yes"]
+                              "toilets" ["amenity=toilets"
+                                         "toilets=yes"
+                                         "building=toilets"]})
 
 (defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
 
