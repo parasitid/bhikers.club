@@ -20,6 +20,11 @@
 
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
 (defonce default-locale "en")
+(defonce supported-poi-types ["bhikers" "shelters"
+                              "hotels" "campsites"
+                              "restaurants" "bakeries"
+                              "bikeshops" "bottlerefills"])
+
 
 (defn drawer []
   (f/widget
@@ -57,49 +62,72 @@
                               nil)))
                          drawer-routes)))))
 
+
+(defn around-me-enddrawer []
+  (f/widget
+   :get [:selected-poi-type
+         m/Navigator]
+   :watch [selected-value selected-poi-type]
+   m/Drawer
+   (m/ListView
+    .padding (m/EdgeInsets.all 20)
+    .children
+    (map (fn [poi] (m/RadioListTile
+                    .title (m/Text (l10n/tr (str "around_me.poi_types." poi)))
+                    .value poi
+                    .groupValue selected-value
+                    .onChanged (fn [val] (swap! selected-poi-type (constantly val))
+                                 (.pop navigator))))
+         supported-poi-types))))
+
+
+
 (defn app-bar []
   (m/AppBar .title (m/Text (l10n/tr "app.title"))))
 
 (defn around-me-screen []
-  (m/Scaffold
-   .appBar (app-bar)
-   .drawer (drawer)
-   .body
-   (f/widget
-    :managed [align-position-stream-controller (#/(dart-async/StreamController double?))
-              :dispose .close]
-    :watch [align-position-on-update (atom maploc/AlignOnUpdate.always) :as *align-position-on-update]
-    (map/FlutterMap
-     .options (map/MapOptions
-               .initialZoom 12
-               .minZoom 0
-               .maxZoom 16
-               .onPositionChanged (fn [camera hasGesture]
-                                    (when (and hasGesture
-                                               (not= align-position-on-update maploc/AlignOnUpdate.never))
-                                      (reset! *align-position-on-update maploc/AlignOnUpdate.never))))
+  (f/widget
+   :bind {:selected-poi-type (atom "shelters")}
+   (m/Scaffold
+    .appBar (app-bar)
+    .drawer (drawer)
+    .endDrawer (around-me-enddrawer)
+    .body
+    (f/widget
+     :managed [align-position-stream-controller (#/(dart-async/StreamController double?))
+               :dispose .close]
+     :watch [align-position-on-update (atom maploc/AlignOnUpdate.always) :as *align-position-on-update]
+     (map/FlutterMap
+      .options (map/MapOptions
+                .initialZoom 12
+                .minZoom 0
+                .maxZoom 16
+                .onPositionChanged (fn [camera hasGesture]
+                                     (when (and hasGesture
+                                                (not= align-position-on-update maploc/AlignOnUpdate.never))
+                                       (reset! *align-position-on-update maploc/AlignOnUpdate.never))))
 
-     .children
-     [(map/TileLayer
-       .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-       .userAgentPackageName "club.bhikers"
-       .tileProvider (cmap/CancellableNetworkTileProvider)
-       .maxZoom 19)
-      (maploc/CurrentLocationLayer
-       .alignPositionStream (.-stream align-position-stream-controller)
-       .alignPositionOnUpdate align-position-on-update)
-      (m/Align
-       .alignment m/Alignment.bottomRight
-       .child (m/Padding .padding (m/EdgeInsets.all 20.0)
-                         .child (m/FloatingActionButton
-                                 .onPressed (fn [] (do
-                                                     (reset! *align-position-on-update maploc/AlignOnUpdate.never)
-                                                     (.add align-position-stream-controller 12)))
-                                 .child (m/Icon m/Icons.my_location .color m/Colors.white))))
-      (map/Scalebar
-       .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
-       .alignment m/Alignment.bottomLeft
-       .length map/ScalebarLength.m)]))))
+      .children
+      [(map/TileLayer
+        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        .userAgentPackageName "club.bhikers"
+        .tileProvider (cmap/CancellableNetworkTileProvider)
+        .maxZoom 19)
+       (maploc/CurrentLocationLayer
+        .alignPositionStream (.-stream align-position-stream-controller)
+        .alignPositionOnUpdate align-position-on-update)
+       (m/Align
+        .alignment m/Alignment.bottomRight
+        .child (m/Padding .padding (m/EdgeInsets.all 20.0)
+                          .child (m/FloatingActionButton
+                                  .onPressed (fn [] (do
+                                                      (reset! *align-position-on-update maploc/AlignOnUpdate.never)
+                                                      (.add align-position-stream-controller 12)))
+                                  .child (m/Icon m/Icons.my_location .color m/Colors.white))))
+       (map/Scalebar
+        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+        .alignment m/Alignment.bottomLeft
+        .length map/ScalebarLength.m)])))))
 
 
 

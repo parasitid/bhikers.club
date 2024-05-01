@@ -22,6 +22,15 @@ enhance_gpx:
 around_me:
   screen_title: Intorno a me
   description: Punti di interesse intorno alla mia posizione GPS attuale
+  poi_types:
+    bhikers: Bhikers
+    shelters: Rifugi
+    hotels: Hotel
+    campsites: Campeggi
+    restaurants: Ristoranti
+    bottlerefills: Ricariche di bottiglie
+    bakeries: Panetterie
+    bikeshops: Negozi di biciclette
 about:
   screen_title: Informazioni
   description: Bhikers Club di ParaSitid
