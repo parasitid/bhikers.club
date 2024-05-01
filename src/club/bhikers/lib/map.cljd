@@ -79,7 +79,7 @@
                          lat (/ (.floor (* lat0 100000)) 100000)]
                     (log "position event from stream: " lat " " lon)
                     (when (not= [lat lon] current-pos)
-                      (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
+                      (debug-notif "position fetched from stream updated: " lat " " lon)
                       ;; swap position before refreshing pois
                       (swap! map-state assoc :current-pos [lat lon])))))]
 
@@ -98,7 +98,7 @@
       (fn []
        (let [{:keys [streamz current-pos-as-center? align-position-on-update]} @map-state
              {:keys [apsc]} streamz]
-         (debug-notif "(re)align map on current position")
+         (log "(re)align map on current position")
          (when (or (not= align-position-on-update maploc/AlignOnUpdate.always)
                    (not current-pos-as-center?))
            (swap! map-state assoc

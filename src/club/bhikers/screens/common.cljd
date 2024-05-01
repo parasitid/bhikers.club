@@ -2,10 +2,7 @@
   (:require ["package:flutter/material.dart" :as m]
             [club.bhikers.lib.utils :refer [l10n-str]]
             [club.bhikers.lib.notifications
-             :refer
-             [notifications
-              dismiss-notif
-              dismiss-all-notifs]]
+             :refer [dismiss-notif dismiss-all-notifs]]
            [club.bhikers.lib.app :refer [feat-enhance-gpx?
                                          feat-fall-detector?]]
            [cljd.flutter :as f]))
@@ -60,6 +57,7 @@
 
 (defn notifications-list-widget []
   (f/widget
+   :get [:notifications]
    :watch [*notifs notifications]
    (m/ListView
     .padding (m/EdgeInsets.all 2.0)
@@ -81,18 +79,38 @@
 (defn app-bar [& {:keys [additional-actions]
                   :or {additional-actions []}}]
   (m/AppBar .title (m/Text (l10n-str "app.title"))
-            .actions (into
+            .actions (concat
                       [(f/widget
                         :context ctx
-                        (m/IconButton .icon (m/Icon m/Icons.notification_important)
-                                      .tooltip "important"
-                                      .onPressed (fn []
-                                                   (m/showModalBottomSheet
-                                                    .context ctx
-                                                    .builder (f/build
-                                                              (f/widget
-                                                               (m/Container .height 300)
-                                                               (notifications-list-widget))))
-
-                                                   nil)))]
+                        :get [:notifications]
+                        :watch [*notifs notifications]
+                        (m/Stack .children (concat
+                                            [(m/IconButton .icon (m/Icon m/Icons.notification_important)
+                                                           .tooltip "important"
+                                                           .onPressed (fn []
+                                                                        (m/showModalBottomSheet
+                                                                         .context ctx
+                                                                         .builder (f/build
+                                                                                   (f/widget
+                                                                                    (m/Container .height 300)
+                                                                                    (notifications-list-widget))))
+                                                                        nil))]
+                                            (let [nb-notifs (count *notifs)]
+                                              (if (< 0 nb-notifs)
+                                                [(f/widget
+                                                  (m/Positioned .right 10 .top 10)
+                                                  (m/Container  .padding (m/EdgeInsets.all 5)
+                                                                .decoration (m/BoxDecoration
+                                                                             .shape m/BoxShape.circle
+                                                                             .color m/Colors.red)
+                                                                .constraints (m/BoxConstraints
+                                                                              .minWidth 12
+                                                                              .minHeight 12))
+                                                  (m/Text (str nb-notifs)
+                                                          .textAlign m/TextAlign.center
+                                                          .style (m/TextStyle
+                                                                  .fontWeight m/FontWeight.bold
+                                                                  .fontSize 8
+                                                                  .color m/Colors.white)))]
+                                                [])))))]
                       additional-actions)))
