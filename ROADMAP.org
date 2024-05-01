@@ -35,11 +35,12 @@ rely only on geolocator lastknownposition + position stream as a workaround
 ** global ui
 ** Around me
 *** TODO share poi with nav app (waze/geovelo/komoot/...)
-*** TODO add recommandation on POI (setup api backend)
 *** TODO add cache for tiles
 *** TODO show "location currently unknown" overlay message
 *** TODO allow custom overpass tag filter
 *** TODO show attribution widget for osm+overpass
+*** TODO display bike_friends tags with special color and priority
+*** TODO tag POI as bike_friend (setup user management first)
 ** Settings
 ** About
 *** TODO make credits page
@@ -53,18 +54,27 @@ rely only on geolocator lastknownposition + position stream as a workaround
 ** tech/debug
 ** CICD
 *** TODO automate build, release and publish android app on github
-*** TODO automate build, release and publish android app on ?store?
-*** TODO automate build, release and publish ios app on ?store?
-
-* Development
-
+*** TODO automate publish android app on fdroid
+*** TODO automate publish android app on obtainium
+*** TODO automate publish android app on play store
+*** TODO automate build, release and publish ios app on appstore
 
 * Ideas
 
 ** Use IPFS (https://github.com/jxoesneon/IPFS/tree/master ?) to send alerts and notifs between users
+* Useful links
+
+- [[https://github.com/Zverik/every_door][every door]]
 
 * Others
+
 ** Frugal App Manifesto
 *** DONE write v0
+*** TODO add features map
 ** The Bhikers Club Good Fellow
 *** DONE write v0
+
+** Website
+
+*** DONE domain name ok
+*** TODO ghpages

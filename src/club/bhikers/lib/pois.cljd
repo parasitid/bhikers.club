@@ -4,6 +4,8 @@
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
    [club.bhikers.lib.notifications :refer [debug-notif]]
    [club.bhikers.lib.app :refer [api-query-timeout]]
+   ["package:url_launcher/url_launcher.dart" :refer [canLaunchUrl launchUrl LaunchMode]]
+   ["package:maps_launcher/maps_launcher.dart" :refer [MapsLauncher]]
    [club.bhikers.lib.utils :refer [log uuid-v5]]))
 
 (defonce poi-types->osm-tags {"shelters" "amenity=shelter"
@@ -75,3 +77,13 @@
                      (reset! pois results)
                      (debug-notif "no pois fetched! map-state was: " new-state))))))))
    pois))
+
+(defn route-to-poi [poi]
+  (-> MapsLauncher (.launchCoordinates (get poi "lat") (get poi "lon"))))
+
+(defn edit-poi [poi]
+  (let [geoedit-uri (Uri.parse (str "geo:" (get poi "lat") "," (get poi "lon")))]
+    (if (await (canLaunchUrl (Uri.parse "everydoor://")))
+      (await (launchUrl geoedit-uri))
+      (await (launchUrl (Uri.parse "https://every-door.app/")
+                 .mode LaunchMode.externalApplication)))));)))

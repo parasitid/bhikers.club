@@ -15,7 +15,7 @@ Los usuarios pueden contribuir etiquetando Puntos de Interés (POIs) en **OpenSt
 
 ## 🛠 Características
 - ✅ Encuentra **restaurantes, panaderías, hoteles, campings, refugios, fuentes de agua...** cercanos
-- ❌ **Compartir con una app de navegación GPS** – *Próximamente!*
+- ✅ **Compartir con una app de navegación GPS**
 - ❌ **Modo sin conexión** – *Próximamente!*
 - ❌ **Mejorar archivos GPX** – *Próximamente!*
 - ❌ **Etiquetar POIs bike_friend** – *Próximamente!*

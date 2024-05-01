@@ -15,7 +15,7 @@ Benutzer können dazu beitragen, indem sie **OpenStreetMap (OSM)** Points of Int
 
 ## 🛠 Funktionen
 - ✅ Finde **Restaurants, Bäckereien, Hotels, Campingplätze, Unterkünfte, Wasserbrunnen...** in deiner Nähe
-- ❌ **Mit einer GPS-Navigations-App teilen** – *Bald verfügbar!*
+- ✅ **Mit einer GPS-Navigations-App teilen**
 - ❌ **Offline-Modus** – *Bald verfügbar!*
 - ❌ **GPX-Dateien verbessern** – *Bald verfügbar!*
 - ❌ **bike_friend-POIs taggen** – *Bald verfügbar!*

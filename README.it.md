@@ -15,7 +15,7 @@ Gli utenti possono contribuire taggando i Punti di Interesse (POI) in **OpenStre
 
 ## 🛠 Funzionalità
 - ✅ Trova **ristoranti, panetterie, hotel, campeggi, rifugi, fontane d’acqua...** nelle vicinanze
-- ❌ **Condividere con un’app di navigazione GPS** – *Prossimamente!*
+- ✅ **Condividere con un’app di navigazione GPS**
 - ❌ **Modalità offline** – *Prossimamente!*
 - ❌ **Migliorare file GPX** – *Prossimamente!*
 - ❌ **Taggare i POI bike_friend** – *Prossimamente disponibile!*

@@ -12,7 +12,7 @@
 (defn location-settings []
   (let [distance-filter (if debug-mode? 0 500) ; Update position every 500m...
         interval-duration (if debug-mode?
-                            (Duration .seconds 5)
+                            (Duration .seconds 30)
                             (Duration .minutes 5)) ; Update position every 5minutes...
         accuracy geo/LocationAccuracy.low]
     (cond

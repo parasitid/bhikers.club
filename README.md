@@ -23,7 +23,7 @@
 
 ## 🛠 Features
 - ✅ Find nearby **restaurants, bakeries, hotels, campgrounds, shelters, water fountains and stuff...**
-- ❌ **Share with GPS navigation app** – *Coming soon!* 
+- ✅ **Share with GPS navigation app**
 - ❌ **Offline mode** – *Coming soon!* 
 - ❌ **Enhance GPX** – *Coming soon!* 
 - ❌ **Tag bike_friend POIs** – *Coming soon!* 

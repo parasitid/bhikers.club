@@ -1,18 +1,21 @@
 (ns club.bhikers.screens.aroundme
   (:require ["package:flutter/material.dart" :as m]
             ["package:flutter_map/flutter_map.dart" :as fmap]
-            ["package:latlong2/latlong.dart" :as ll]
+            ["package:latlong2/latlong.dart" :refer [LatLng]]
             ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
-            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
-            ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
-            ["package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart" :as cluster]
+            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart"
+             :refer [CancellableNetworkTileProvider]]
+            ["package:flutter_map_compass/flutter_map_compass.dart" :refer [MapCompass]]
+            ["package:url_launcher/link.dart" :refer [Link LinkTarget]]
+            ["package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart"
+             :refer [MarkerClusterLayerWidget MarkerClusterLayerOptions]]
             [club.bhikers.lib.app :refer [supported-poi-types
                                           max-pois-radius
                                           icicommencelaventure
                                           vertouplage]]
             [club.bhikers.lib.map :as map]
             [club.bhikers.screens.common :refer [app-bar drawer]]
-            [club.bhikers.lib.pois :refer [dynamic-map-pois]]
+            [club.bhikers.lib.pois :refer [dynamic-map-pois route-to-poi edit-poi]]
             [club.bhikers.lib.utils :refer [l10n-str log debug-mode?]]
             [cljd.flutter :as f]))
 
@@ -59,6 +62,63 @@
          .onChanged #(swap! map-state assoc :transient-radius (.round %))
          .onChangeEnd (fn [_] (swap! map-state assoc :radius transient-radius)))])]))))
 
+  ; Filter out blacklisted keys
+
+(defonce priority-list ["name" "phone" "contact:phone" "website" "email"])
+(defonce converters
+  {
+   "phone" (fn [value] (f/widget (Link .uri (Uri.parse (str "tel://" value))
+                                       .target LinkTarget.blank
+                                       .builder (f/build [open-link]
+                                                         (f/widget
+                                                          (m/TextButton.icon .onPressed open-link
+                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
+                                                                             .icon (m/Icon m/Icons.call)))))))
+   "contact:phone" (fn [value] (f/widget (Link .uri (Uri.parse (str "tel://" value))
+                                       .target LinkTarget.blank
+                                       .builder (f/build [open-link]
+                                                         (f/widget
+                                                          (m/TextButton.icon .onPressed open-link
+                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
+                                                                             .icon (m/Icon m/Icons.call)))))))
+   "contact:email" (fn [value] (f/widget (Link .uri (Uri.parse (str "mailto://" value))
+                                       .target LinkTarget.blank
+                                       .builder (f/build [open-link]
+                                                         (f/widget
+                                                          (m/TextButton.icon .onPressed open-link
+                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
+                                                                             .icon (m/Icon m/Icons.email)))))))
+   "email" (fn [value] (f/widget (Link .uri (Uri.parse (str "mailto://" value))
+                                               .target LinkTarget.blank
+                                               .builder (f/build [open-link]
+                                                                 (f/widget
+                                                                  (m/TextButton.icon .onPressed open-link
+                                                                                     .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
+                                                                                     .icon (m/Icon m/Icons.email)))))))
+   "website" (fn [value] (f/widget (Link .uri (Uri.parse value)
+                                       .target LinkTarget.blank
+                                       .builder (f/build [open-link]
+                                                         (f/widget
+                                                          (m/TextButton.icon .onPressed open-link
+                                                                             .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
+                                                                             .icon (m/Icon m/Icons.open_in_browser)))))))
+   })
+
+(defn tag->widget [[key value]]
+  [key (if-let [converter (get converters key)]
+         (converter value) ;; Apply conversion if a function exists
+         (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2))])
+
+(defn prioritize-attributes [tags]
+  (let [widgets (into {} (map tag->widget tags))
+        prioritized-widgets (map (fn [key] (when-let [value (get widgets key)] [key value]))
+                                 priority-list)
+        other-widgets (into {} (filter #(not ((set priority-list) (key %))) widgets))]
+    (concat
+     (filter some? prioritized-widgets)    ; Only include non-nil prioritized tags
+     other-widgets)))
+
+
 
 ;; modal bottom sheet displaying info about a POI
 (defn around-me-show-poi-info [ctx poi]
@@ -66,12 +126,37 @@
    .context ctx
    .builder (f/build
              (f/widget
-              (m/Container .height 300)
-              (m/ListView .children (map (fn [[name value]]
-                                           (m/ListTile
-                                            .subtitle (m/Text (l10n-str name))
-                                            .title (m/Text value)))
-                                         (get poi "tags" {})))))))
+              (m/Container .height 300 .padding (m/EdgeInsets.all 16))
+              (m/Column .mainAxisSize m/MainAxisSize.min
+                        .children [(m/Row
+                                    .mainAxisAlignment m/MainAxisAlignment.end
+                                    .children [(m/IconButton .icon (m/Icon m/Icons.edit .size 30)
+                                                             .tooltip (l10n-str "edit-everydoor")
+                                                             .onPressed #(do (edit-poi poi)
+                                                                             nil))
+                                               (m/IconButton .icon (m/Icon m/Icons.turn_right .size 30)
+                                                             .tooltip (l10n-str "route-to-poi")
+                                                             .onPressed #(do (route-to-poi poi)
+                                                                             nil))])
+                                   (m/SizedBox .height 16)
+                                   (f/widget
+                                    m/Expanded
+                                    m/SingleChildScrollView
+                                    (m/Column
+                                     .crossAxisAlignment m/CrossAxisAlignment.stretch
+                                     .children (map (fn [[name value]]
+                                                      (f/widget
+                                                       (m/Padding .padding (m/EdgeInsets.all 8))
+                                                       (m/Row .mainAxisAlignment m/MainAxisAlignment.start
+                                                              .children [(f/widget
+                                                                          m/Flexible
+                                                                          (m/Text (str (l10n-str name) ": " )
+                                                                                  .style (m/TextStyle .fontWeight m/FontWeight.bold)
+                                                                                  .overflow m/TextOverflow.ellipsis))
+                                                                         (f/widget
+                                                                          m/Expanded
+                                                                          value)])))
+                                                    (prioritize-attributes (get poi "tags" {})))))])))))
 
 ;; widget for POI markers on map
 ;; - watch map-state current position & selected poi type
@@ -82,9 +167,9 @@
   (f/widget
    :context ctx :get [:map-state :overpass-api]
    :watch [pois (dynamic-map-pois map-state overpass-api)]
-   (cluster/MarkerClusterLayerWidget
+   (MarkerClusterLayerWidget
     .options
-    (cluster/MarkerClusterLayerOptions
+    (MarkerClusterLayerOptions
      .maxClusterRadius 100
      .size (m/Size 40 40)
      .alignment m/Alignment.center
@@ -99,7 +184,7 @@
                  (m/Center .child
                            (m/Text (str (count markers))
                                    .style (m/TextStyle .color m/Colors.white)))))
-     .markers (map #(fmap/Marker .point (ll/LatLng (get % "lat") (get % "lon"))
+     .markers (map #(fmap/Marker .point (LatLng (get % "lat") (get % "lon"))
                                  .height 40
                                  .width 40
                                  .child (m/GestureDetector
@@ -160,7 +245,7 @@
                .initialCenter (if debug-mode? vertouplage icicommencelaventure)
                .minZoom 0
                .maxZoom 18
-               .onLongPress (fn [_ ^ll/LatLng point]
+               .onLongPress (fn [_ ^LatLng point]
                               (map/new-center! dms [(.-latitude point) (.-longitude point)]))
 
                ;; Stop aligning the location marker to the center of the map widget
@@ -170,7 +255,7 @@
      [(fmap/TileLayer
        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
        .userAgentPackageName "club.bhikers"
-       .tileProvider (cmap/CancellableNetworkTileProvider)
+       .tileProvider (CancellableNetworkTileProvider)
        .maxZoom 18)
       (around-me-pois-markers-widget)
       (maploc/CurrentLocationLayer
@@ -186,6 +271,6 @@
        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
        .alignment m/Alignment.bottomLeft
        .length fmap/ScalebarLength.m)
-      (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)
+      (MapCompass.cupertino .alignment m/Alignment.topLeft)
       (new-current-center-marker current-pos-as-center? current-center)
       (map/msg)]))))
