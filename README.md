@@ -11,10 +11,10 @@
 🇬🇧 English | 🇫🇷 [Français](README.fr.md) | 🇩🇪 [Deutsch](README.de.md) | 🇪🇸 [Español](README.es.md) | 🇮🇹 [Italiano](README.it.md) 
 
 <p align="center">
-  <img src="misc/Screenshot_2025-02-26_14-07-43.png" width="25%" />
-  <img src="misc/Screenshot_2025-02-26_14-10-28.png" width="25%" />
-  <img src="misc/Screenshot_2025-03-12_13-51-08.png" width="25%" />
-  <img src="misc/Screenshot_2025-02-26_14-14-33.png" width="25%" />
+  <img src="misc/Screenshot_2025-02-26_14-07-43.png" width="20%" />
+  <img src="misc/Screenshot_2025-02-26_14-10-28.png" width="20%" />
+  <img src="misc/Screenshot_2025-03-12_13-51-08.png" width="20%" />
+  <img src="misc/Screenshot_2025-02-26_14-14-33.png" width="20%" />
 </p>
 
 ## 📌 About
