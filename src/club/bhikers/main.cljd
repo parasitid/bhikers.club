@@ -93,7 +93,11 @@
                                  .onPressed (fn [] (do
                                                      (reset! *align-position-on-update maploc/AlignOnUpdate.never)
                                                      (.add align-position-stream-controller 12)))
-                                 .child (m/Icon m/Icons.my_location .color m/Colors.white))))]))))
+                                 .child (m/Icon m/Icons.my_location .color m/Colors.white))))
+      (map/Scalebar
+       .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+       .alignment m/Alignment.bottomLeft
+       .length map/ScalebarLength.m)]))))
 
 
 
