@@ -73,7 +73,7 @@
     .padding (m/EdgeInsets.all 20)
     .children
     (map (fn [poi] (m/RadioListTile
-                    .title (m/Text (l10n/tr (str "around_me.poi_types." poi)))
+                    .title (m/Text (l10n/tr (str "around_me.pois." poi)))
                     .value poi
                     .groupValue selected-value
                     .onChanged (fn [val] (swap! selected-poi-type (constantly val))
