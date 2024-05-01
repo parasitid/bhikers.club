@@ -1,7 +1,7 @@
 {:paths ["src"] ; where your cljd files are
  :deps {tensegritics/clojuredart
         {:git/url "https://github.com/tensegritics/ClojureDart.git"
-         :sha "3d132b2b147b8e9a5e77068af69d39f27f2414a6" #_"1d26407274094ae043a9f89d26940cb6f23c5682" #_"6127d8ef23156f2be5b10e97a0932868d175e585"}}
+         :sha "f96be46b358afc08f0e386d09e9305c21d6b23d9" #_"3d132b2b147b8e9a5e77068af69d39f27f2414a6" #_"1d26407274094ae043a9f89d26940cb6f23c5682" #_"6127d8ef23156f2be5b10e97a0932868d175e585"}}
  :aliases {:cljd {:main-opts ["-m" "cljd.build"]}
            :test-widgets {:extra-paths ["test"]
                           :cljd/opts {:dart-test-args ["-t" "widget"]}}}
