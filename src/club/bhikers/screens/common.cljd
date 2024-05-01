@@ -31,8 +31,8 @@
      .padding (m/EdgeInsets.all 2.0)
      .children (concat
                 [(m/UserAccountsDrawerHeader
-                  .accountName (m/Text "John Doe")
-                  .accountEmail (m/Text "johndoe@example.com")
+                  .accountName (m/Text "Anonymous")
+                  .accountEmail (m/Text "foo@bar.com")
                   .currentAccountPicture (m/CircleAvatar .child (m/Text "JD")))]
                 (map (fn [[route title icon]]
                        (m/ListTile

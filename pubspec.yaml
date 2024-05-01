@@ -41,18 +41,18 @@ dependencies:
   dio_cache_interceptor: ^3.5.1
   easy_localization: ^3.0.7+1
   easy_localization_loader: ^2.0.2
+  flutter_launcher_icons: ^0.14.3
   flutter_map: ^7.0.2
   flutter_map_cancellable_tile_provider: ^3.0.2
+  flutter_map_compass: ^1.1.0
   flutter_map_location_marker: ^9.1.1
+  flutter_map_marker_cluster: ^1.4.0
   flutter_settings_screens: ^0.3.4
+  geoengine: ^1.0.3
   geolocator: ^13.0.2
   latlong2: ^0.9.1
   permission_handler: ^11.3.1
   uuid: ^4.5.1
-  flutter_map_compass: ^1.1.0
-  flutter_launcher_icons: ^0.14.3
-  geoengine: ^1.0.3
-    #geoengine: ^1.0.3
 
 dev_dependencies:
   flutter_test:

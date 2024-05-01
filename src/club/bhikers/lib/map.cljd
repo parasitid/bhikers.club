@@ -69,9 +69,11 @@
             lms (->location-marker-stream ps)
             pss (subscribe-position-stream
                  ps
-                 (fn [lat lon]
+                 (fn [lat0 lon0]
+                   (let [{:keys [current-pos]} @map-state
+                         lon (/ (.floor (* lon0 100000)) 100000) ;; round lat lon precision to 5 decimal digits
+                         lat (/ (.floor (* lat0 100000)) 100000)]
                    (log "position event from stream: " lat " " lon)
-                   (let [{:keys [current-pos]} @map-state]
                      (when (not= [lat lon] current-pos)
                        (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
                        ;; swap position before refreshing pois
