@@ -1,11 +1,11 @@
-(ns club.bhikers.position
+(ns club.bhikers.lib.position
   (:require
    ["package:flutter/foundation.dart" :as foundation]
    ["dart:async" :as async]
    ["dart:io" :as io]
    ["package:geolocator/geolocator.dart" :as geo]
    ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
-   [club.bhikers.utils :refer [debug-mode? log]]))
+   [club.bhikers.lib.utils :refer [debug-mode? log]]))
 
 
 ;; per device type location settings

@@ -1,12 +1,12 @@
-(ns club.bhikers.utils
+(ns club.bhikers.lib.utils
   (:require
    ["package:uuid/uuid.dart" :as uuid]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
    ["package:flutter/material.dart" :as m]
    ["package:flutter/foundation.dart" :as foundation]
-   ["package:easy_localization/easy_localization.dart" :as l10n]))
+   ["package:easy_localization/easy_localization.dart" :as l10n]
+   [club.bhikers.lib.app :refer [force-debug-mode]]))
 
-(defonce force-debug-mode (atom true))
 (defn debug-mode? [] (or @force-debug-mode foundation/kDebugMode))
 
 (defn l10n-str [& args] (apply str (map l10n/tr args)))

@@ -1,0 +1,18 @@
+(ns club.bhikers.screens.falldetector
+  "Bhikers Club App by ParaSitid"
+  (:require ["package:flutter/material.dart" :as m]
+           [club.bhikers.screens.common :refer [app-bar drawer]]
+           [club.bhikers.lib.utils :refer [l10n-str]]
+           [cljd.flutter :as f]))
+
+;; Setup fall detector screen
+;; TODO:
+;; - run a fall detector in background to detect device fall, using various sensors
+;; - on alert, send sms/telegram msg
+(defn fall-detector-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body (f/widget
+          m/Center
+          (m/Text (l10n-str "fall_detector.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))

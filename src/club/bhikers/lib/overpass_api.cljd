@@ -1,8 +1,8 @@
-(ns club.bhikers.overpass-api
+(ns club.bhikers.lib.overpass-api
   (:require
    ["package:dio/dio.dart" :as dio]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
-   [club.bhikers.utils :refer [log uuid-v5]]))
+   [club.bhikers.lib.utils :refer [log uuid-v5]]))
 
 (defonce poi-types->osm-tags {"shelters" "amenity=shelter"
                               "hotels" "tourism=hotel"

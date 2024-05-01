@@ -1,11 +1,11 @@
-(ns club.bhikers.permissions
+(ns club.bhikers.lib.permissions
   (:require
    ["package:permission_handler/permission_handler.dart" :as perms]
    ["package:easy_localization/easy_localization.dart" :as l10n]
    ["package:flutter/foundation.dart" :as foundation]
    ["dart:io" :as io]
-   [club.bhikers.notifications :refer [new-notif]]
-   [club.bhikers.utils :refer [log]]))
+   [club.bhikers.lib.notifications :refer [new-notif]]
+   [club.bhikers.lib.utils :refer [log]]))
 
 ;; permissions helpers
 ;;

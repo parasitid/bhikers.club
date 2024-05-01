@@ -1,0 +1,18 @@
+(ns club.bhikers.screens.enhancegpx
+  "Bhikers Club App by ParaSitid"
+  (:require ["package:flutter/material.dart" :as m]
+           [club.bhikers.screens.common :refer [app-bar drawer]]
+           [club.bhikers.lib.utils :refer [l10n-str]]
+           [cljd.flutter :as f]))
+
+;; Setup enhance gpx screen
+;; TODO:
+;; - select gpx file, enhance with POIs all along the trace, save
+;; - share with app (komoot/geoveo/...)
+(defn enhance-gpx-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body (f/widget
+          m/Center
+          (m/Text (l10n-str "enhance_gpx.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))

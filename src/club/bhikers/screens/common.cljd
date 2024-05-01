@@ -1,0 +1,95 @@
+(ns club.bhikers.screens.common
+  "Bhikers Club App by ParaSitid"
+  (:require ["package:flutter/material.dart" :as m]
+            [club.bhikers.lib.utils :refer [l10n-str]]
+            [club.bhikers.lib.notifications
+             :refer
+             [notifications
+              dismiss-notif
+              dismiss-all-notifs]]
+            [cljd.flutter :as f]))
+
+;; Setup main drawer with app routes
+(defn drawer []
+  (f/widget
+   :get [m/Navigator
+         m/Theme]
+   :let [drawer-routes [["/around-me"
+                         (l10n-str "around_me.screen_title")
+                         m/Icons.location_pin]
+                        ["/enhance-gpx"
+                         (l10n-str "enhance_gpx.screen_title")
+                         m/Icons.hotel_class_outlined]
+                        ["/fall-detector"
+                         (l10n-str "fall_detector.screen_title")
+                         m/Icons.crisis_alert]
+                        ["/settings"
+                         (l10n-str "settings.screen_title")
+                         m/Icons.settings]]]
+   m/Drawer
+    (m/ListView
+     .padding (m/EdgeInsets.all 2.0)
+     .children (concat
+                [(m/UserAccountsDrawerHeader
+                  .accountName (m/Text "John Doe")
+                  .accountEmail (m/Text "johndoe@example.com")
+                  .currentAccountPicture (m/CircleAvatar .child (m/Text "JD")))]
+                (map (fn [[route title icon]]
+                       (m/ListTile
+                        .leading (m/Icon icon)
+                        .title (m/Text title)
+                        .onTap
+                        (fn []
+                          (.pop navigator)
+                          (.pushNamed navigator route)
+                          nil)))
+                     drawer-routes)
+                [(m/AboutListTile
+                  .icon (m/Icon m/Icons.info)
+                  .applicationIcon nil
+                  .applicationName (l10n-str "app.title")
+                  .applicationVersion "v0"
+                  .applicationLegalese (l10n-str "about.legalese")
+                  .aboutBoxChildren [(m/SizedBox .height 24)
+                                     (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)
+                                                                   .text (l10n-str "about.description")))])]))))
+
+
+(defn notifications-list-widget []
+  (f/widget
+   :watch [*notifs notifications]
+   (m/ListView
+    .padding (m/EdgeInsets.all 2.0)
+    .children
+    (into [(m/ListTile
+            .leading (m/Icon m/Icons.notification_important)
+            .title (m/Text (l10n-str "notifications.title"))
+            .trailing (m/IconButton
+                       .icon (m/Icon m/Icons.delete_sweep)
+                       .tooltip (l10n-str "notifications.dismiss_all")
+                       .onPressed #(dismiss-all-notifs)))]
+          (map
+           (fn [[id txt]] (m/Dismissible
+                           .key (m/ValueKey id)
+                           .onDismissed (fn [_] (dismiss-notif id))
+                           .child (m/ListTile .title (m/Text txt))))
+           *notifs)))))
+
+(defn app-bar [& {:keys [additional-actions]
+                  :or {additional-actions []}}]
+  (m/AppBar .title (m/Text (l10n-str "app.title"))
+            .actions (into
+                      [(f/widget
+                        :context ctx
+                        (m/IconButton .icon (m/Icon m/Icons.notification_important)
+                                      .tooltip "important"
+                                      .onPressed (fn []
+                                                   (m/showModalBottomSheet
+                                                    .context ctx
+                                                    .builder (f/build
+                                                              (f/widget
+                                                               (m/Container .height 300)
+                                                               (notifications-list-widget))))
+
+                                                   nil)))]
+                      additional-actions)))
