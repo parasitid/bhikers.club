@@ -28,6 +28,7 @@
         };
       in
       {
+        android-sdk.enable = true;
         packages = {
           android-sdk = android.sdk.${system} (sdkPkgs: with sdkPkgs; [
             # Useful packages for building and testing.
@@ -36,7 +37,7 @@
             emulator
             platform-tools
             platforms-android-34
-
+            platforms-android-35
             # Other useful packages for a development environment.
             # ndk-26-1-10909125
             # skiaparser-3

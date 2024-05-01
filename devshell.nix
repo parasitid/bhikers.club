@@ -3,18 +3,16 @@
 with pkgs;
 
 let
-  # android-studio is not available in aarch64-darwin
-  conditionalPackages = if pkgs.system != "aarch64-darwin" then [ android-studio ] else [ ];
+  # android-studio is not available in aarch64-darwin and xcode only on darwin
+  conditionalPackages = if pkgs.system != "aarch64-darwin" then [ android-studio ] else [ darwin.xcode ];
 in
 with pkgs;
 
 # Configure your development environment.
-#
-# Documentation: https://github.com/numtide/devshell
 devshell.mkShell {
-  name = "android-project";
+  name = "flutter-project";
   motd = ''
-    Entered the Android app development environment.
+    Entered the flutter app development environment.
   '';
   env = [
     {
@@ -26,18 +24,23 @@ devshell.mkShell {
       value = "${android-sdk}/share/android-sdk";
     }
     {
+      name = "CHROME_EXECUTABLE";
+      value = "${google-chrome}/bin/google-chrome-stable";
+
+    }
+    {
       name = "JAVA_HOME";
       value = jdk.home;
     }
   ];
   packages = [
     emacs
-    yq
-    android-sdk
+    yq-go
     gradle
     jdk
     flutter
     clojure
     google-chrome
+    fastlane
   ] ++ conditionalPackages;
 }
