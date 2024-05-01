@@ -27,6 +27,8 @@ jobs:
           nix develop --command make clean compile apk-release BUILD_NUMBER="${{ github.run_number }}" BUILD_NAME="${{ github.ref_name }}"
           cp build/app/outputs/flutter-apk/app-release.apk \
             club.bhikers.bhikersclub_${BUILD_ID}.apk
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            club.bhikers.bhikersclub_latest.apk
 
       - name: Create Release
         id: create_release

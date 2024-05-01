@@ -20,6 +20,14 @@
 🚴‍♀️ **Uno de nuestros objetivos es mapear más lugares amigables para ciclistas**.  
 Los usuarios pueden contribuir etiquetando Puntos de Interés (POIs) en **OpenStreetMap (OSM)** con la etiqueta especial [bike_friend](https://taginfo.openstreetmap.org/keys/bike_friend#overview), fortaleciendo así la comunidad ciclista. 
 
+## 📦 Descarga
+
+Puedes descargar la última versión de la app **Bhikers Club** para Android directamente desde tu navegador:
+
+  [Descargar última APK](https://github.com/parasitid/bhikers.club/releases/latest/download/club.bhikers.bhikersclub_latest.apk)
+
+Esta versión se actualiza regularmente con nuevas funciones y correcciones. Asegúrate de habilitar "Instalar desde fuentes desconocidas" en tu dispositivo Android antes de instalar.
+
 ## 🛠 Características
 - ✅ Encuentra **restaurantes, panaderías, hoteles, campings, refugios, fuentes de agua...** cercanos
 - ✅ **Compartir con una app de navegación GPS**

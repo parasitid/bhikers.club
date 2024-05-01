@@ -49,6 +49,7 @@ around_me:
 about:
   screen_title: Über
   description: Bhikers Club von ParaSitid
+  new_version: Neue Version
 common:
   close: Schließen
   radius: Suchradius

@@ -5,32 +5,13 @@
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
    [club.bhikers.lib.notifications :refer [debug-notif]]
    [club.bhikers.lib.app :refer [api-query-timeout]]
-   [club.bhikers.lib.utils :refer [uuid-v5 create-cache-store]]
+   [club.bhikers.lib.utils :refer [uuid-v5
+                                   create-cache-store
+                                   create-dio-instance]]
+
    [club.bhikers.lib.logging :as logging]))
 
-(defn create-dio-instance ^dio/Dio [base-url cache-store]
-  (logging/d "create dio instance for url " base-url)
-  (let [api (dio/Dio
-             (dio/BaseOptions .baseUrl base-url
-                              .connectTimeout (Duration .seconds @api-query-timeout)
-                              .receiveTimeout (Duration .seconds @api-query-timeout)))]
-    (doto (.-interceptors api)
-      (.add (cache/DioCacheInterceptor
-             .options (cache/CacheOptions
-                       .store cache-store
-                       .policy cache/CachePolicy.forceCache
-                       .hitCacheOnErrorExcept [401 403]
-                       .maxStale (Duration .days 1)
-                       .priority cache/CachePriority.normal
-                       .allowPostMethod false
-                       .keyBuilder (fn [^dio/RequestOptions req-opts]
-                                     (let [cache-key (->> req-opts
-                                                          .-uri
-                                                          .toString
-                                                          (uuid-v5))]
-                                       cache-key)))))
-      (.add (dio/LogInterceptor)))
-    api))
+
 
 (defprotocol disposable-overpass-api
   (dispose! [this])
@@ -44,8 +25,14 @@
 ;; see https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances
 (defn new-overpass-api []
   (let [cache-store (create-cache-store 20 (* 1024 1024))
-        apis {:instance1 (create-dio-instance "https://overpass-api.de/api/interpreter?" cache-store)
-              :instance2 (create-dio-instance "https://maps.mail.ru/osm/tools/overpass/api/interpreter?" cache-store)}]
+        apis {:instance1 (create-dio-instance :base-url "https://overpass-api.de/api/interpreter?"
+                                              :query-timeout  (Duration .seconds @api-query-timeout)
+                                              :with-log? false
+                                              :cache-store cache-store)
+              :instance2 (create-dio-instance :base-url "https://maps.mail.ru/osm/tools/overpass/api/interpreter?"
+                                              :query-timeout  (Duration .seconds @api-query-timeout)
+                                              :with-log? false
+                                              :cache-store cache-store)}]
 
     (reify disposable-overpass-api
       (dispose! [this]
@@ -62,11 +49,10 @@
                               (await (.get ^dio/Dio api-instance query))
                               (catch dio/DioException e
                                 (do (logging/d "Exception! " e)
-                                    (debug-notif "error trying " api-instance ": " e)
                                     nil))))
               response (or (await (try-request (get apis :instance1)))
                            (await (try-request (get apis :instance2))))]
-          (when response
+          (if (not response)
+            (debug-notif "error requesting pois with tags: " osm-tags)
             (let [{{elements "elements"} .-data} ^dio/Response response]
-              (logging/d "elements fetched from api: " elements)
               elements)))))))

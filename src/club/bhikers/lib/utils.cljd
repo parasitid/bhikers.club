@@ -1,6 +1,7 @@
 (ns club.bhikers.lib.utils
   (:require
    ["package:uuid/uuid.dart" :as uuid]
+   ["package:dio/dio.dart" :as dio]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
    ["package:geolocator/geolocator.dart" :as geo]
    ["package:easy_localization/easy_localization.dart" :as l10n]))
@@ -33,3 +34,39 @@
     (= a geo/LocationAccuracy.medium) "medium"
     (= a geo/LocationAccuracy.high) "high"
     :else nil))
+
+(defn create-dio-instance ^dio/Dio [
+                                    & {:keys [base-url
+                                              query-timeout
+                                              cache-store
+                                              with-log?]
+                                       :or {base-url nil
+                                            query-timeout (Duration .seconds 2)
+                                            cache-store nil
+                                            with-log? false}}]
+  (let [api (dio/Dio
+             (if base-url
+               (dio/BaseOptions .baseUrl base-url
+                                .connectTimeout query-timeout .receiveTimeout query-timeout)
+               (dio/BaseOptions .connectTimeout query-timeout .receiveTimeout query-timeout)))]
+    (when cache-store
+      (.add (.-interceptors api)
+            (cache/DioCacheInterceptor
+             .options (cache/CacheOptions
+                       .store cache-store
+                       .policy cache/CachePolicy.forceCache
+                       .hitCacheOnErrorExcept [401 403]
+                       .maxStale (Duration .days 1)
+                       .priority cache/CachePriority.normal
+                       .allowPostMethod false
+                       .keyBuilder (fn [^dio/RequestOptions req-opts]
+                                     (let [cache-key (->> req-opts
+                                                          .-uri
+                                                          .toString
+                                                          (uuid-v5))]
+                                       cache-key))))))
+    (when with-log?
+      (.add (.-interceptors api)
+            (dio/LogInterceptor)))
+    api))
+

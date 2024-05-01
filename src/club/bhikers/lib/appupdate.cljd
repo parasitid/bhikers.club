@@ -1,0 +1,27 @@
+(ns club.bhikers.lib.appupdate
+  (:require
+   ["package:dio/dio.dart" :as dio]
+   [club.bhikers.lib.utils :refer [l10n-str create-dio-instance]]
+   [club.bhikers.lib.logging :as logging]
+   [club.bhikers.lib.notifications :refer [new-notif]]
+   [club.bhikers.lib.app :refer [app-info
+                                 new-version
+                                 new-version-url]]))
+
+(defn check-for-update! []
+  (let [refresh! (fn [_ _ _ new-info]
+                  (when new-info
+                    (logging/d "CHECKING FOR UPDATES on " (get new-info :latest-release-api))
+                    (let [release-api (create-dio-instance :query-timeout (Duration .seconds 20))
+                          response (await (.get release-api (get new-info :latest-release-api)))]
+                      (when response
+                        (let [{{tag-name "tag_name" assets "assets"} .-data} ^dio/Response response
+                              browser-dl-url (get (first assets) "browser_download_url")
+                              current-version (get new-info :build-name)]
+                          (logging/d "last release: " tag-name ", current: " current-version)
+                          (when (not= tag-name (str "v" current-version))
+                            (swap! new-version-url (constantly browser-dl-url))
+                            (swap! new-version (constantly tag-name))
+                            (logging/d "NEW VERSION! " @new-version ": " @new-version-url)))))))]
+    (add-watch app-info :check-for-update refresh!)
+    (refresh! nil nil nil @app-info)))

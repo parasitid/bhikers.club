@@ -8,6 +8,7 @@
             [club.bhikers.screens.enhancegpx :refer [enhance-gpx-screen]]
             [club.bhikers.screens.falldetector :refer [fall-detector-screen]]
             [club.bhikers.lib.app :as app :refer [supported-locales default-locale init!]]
+            [club.bhikers.lib.appupdate :refer [check-for-update!]]
             [club.bhikers.lib.overpassapi :as oapi]
             [club.bhikers.lib.logging :as logging]
             [club.bhikers.lib.notifications :refer [notifications]]
@@ -65,6 +66,7 @@
   ;; careful: order matters
   (await (app/init!))
   (await (logging/init!))
+  (check-for-update!)
   (logging/d "starting app")
   (f/run (BhikersClubApp "/around-me"))
   (await logging/close!))

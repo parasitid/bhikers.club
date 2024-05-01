@@ -1,12 +1,16 @@
 (ns club.bhikers.screens.common
   (:require ["package:flutter/material.dart" :as m]
+            ["package:url_launcher/link.dart" :as link]
             [club.bhikers.lib.utils :refer [l10n-str]]
+            [club.bhikers.lib.logging :as logging]
             [club.bhikers.lib.notifications
              :refer [dismiss-notif dismiss-all-notifs]]
             [club.bhikers.screens.debuglog :refer [debuglog-screen]]
             [club.bhikers.lib.app :refer [feat-enhance-gpx?
                                           feat-fall-detector?
-                                          app-info]]
+                                          app-info
+                                          new-version
+                                          new-version-url]]
             [cljd.flutter :as f]))
 
 ;; Setup main drawer with app routes
@@ -14,6 +18,8 @@
   (f/widget
    :get [m/Navigator
          m/Theme]
+   :watch [*new-version-url new-version-url
+           *new-version new-version]
    :let [drawer-routes (concat [["/around-me"
                                  (l10n-str "around_me.screen_title")
                                  m/Icons.location_pin]]
@@ -53,9 +59,24 @@
                  .applicationVersion (str (get @app-info :build-name) "+" (get @app-info :build-number)
                                           " (" (get @app-info :git-commit) ")")
                  .applicationLegalese (l10n-str "about.legalese")
-                 .aboutBoxChildren [(m/SizedBox .height 24)
-                                    (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)
-                                                                  .text (l10n-str "about.description")))])]))))
+                 .aboutBoxChildren (concat
+                                    [(m/SizedBox .height 24)
+                                     (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)
+                                                                   .text (l10n-str "about.description")))]))]
+               (if (not *new-version-url)
+                 []
+                 [(m/ListTile
+                       .leading (m/Icon m/Icons.warning)
+                       .title (m/Text (str (l10n-str "about.new_version") ": "*new-version "!")))
+                  (link/Link .uri (Uri.parse *new-version-url)
+                             .target link/LinkTarget.blank
+                             .builder (f/build [open-link]
+                                               (f/widget
+                                                (m/TextButton.icon .onPressed open-link
+                                                                   .label (m/Text *new-version-url .overflow m/TextOverflow.fade .softWrap true .maxLines 1)
+                                                                   .icon (m/Icon m/Icons.system_update)))))])))))
+
+
 
 (defn notifications-list-widget []
   (f/widget

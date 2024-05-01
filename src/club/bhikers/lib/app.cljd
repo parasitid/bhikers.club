@@ -11,9 +11,11 @@
             ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
             ["package:easy_localization/easy_localization.dart" :as l10n]
             ["dart:io" :refer [Directory]]
-            [club.bhikers.lib.utils :refer [str->location-accuracy
+            [club.bhikers.lib.utils :refer [create-dio-instance
+                                            str->location-accuracy
                                             location-accuracy->str]]))
 
+(defonce default-latest-release-api "https://api.github.com/repos/parasitid/bhikers.club/releases/latest")
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
 (defonce default-locale "en")
 (defonce max-pois-radius 10000);; 20km
@@ -39,6 +41,8 @@
 (defonce pois-radius (atom 1000))
 (defonce feat-fall-detector? false)
 (defonce feat-enhance-gpx? false)
+(defonce new-version-url (atom nil))
+(defonce new-version (atom nil))
 
 (defonce refresh-location-distance-filter (atom 500))
 (defonce refresh-location-interval-duration (atom (Duration .seconds 30)))
@@ -73,7 +77,10 @@
                                  :build-number (.-buildNumber pkg-info)
                                  :app-name (.-appName pkg-info)
                                  :git-commit (String.fromEnvironment "GIT_COMMIT" .defaultValue "undef")
-                                 :git-branch (String.fromEnvironment "GIT_BRANCH" .defaultValue "undef")}))
+                                 :git-branch (String.fromEnvironment "GIT_BRANCH" .defaultValue "undef")
+                                 :repo-url  (String.fromEnvironment "REPO_URL" .defaultValue "undef")
+                                 :latest-release-api  (String.fromEnvironment "LATEST_RELEASE_API"
+                                                                              .defaultValue default-latest-release-api)}))
     (swap! refresh-location-distance-filter (constantly (int/tryParse _distance-setting)))
     (swap! refresh-location-interval-duration (constantly (Duration .seconds _duration-setting)))
     (swap! refresh-location-accuracy (constantly (str->location-accuracy _accuracy-setting)))

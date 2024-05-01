@@ -49,6 +49,7 @@ around_me:
 about:
   screen_title: À propos
   description: Bhikers Club par ParaSitid
+  new_version: Nouvelle version
 common:
   close: Fermer
   permission-denied: autorisation définitivement refusée pour

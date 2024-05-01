@@ -50,7 +50,7 @@ should be able to access logs in a file
 * V0.1 App features
 ** global ui
 *** TODO P1 add help
-*** TODO P1 add check for updates
+*** DONE P1 add check for updates
 ** Around me
 *** DONE share poi with nav app (waze/geovelo/komoot/...)
 *** TODO add cache for tiles

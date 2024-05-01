@@ -20,6 +20,14 @@
 🚴‍♀️ **Eines unserer Ziele ist es, mehr fahrradfreundliche Orte** zu kartieren!  
 Benutzer können dazu beitragen, indem sie **OpenStreetMap (OSM)** Points of Interest (POIs) mit dem speziellen Tag [bike_friend](https://taginfo.openstreetmap.org/keys/bike_friend#overview) versehen, um die Fahrrad-Community zu stärken.  
 
+## 📦 Download
+
+Du kannst die neueste Version der **Bhikers Club** Android-App direkt über deinen Browser herunterladen:
+
+  [Neueste APK herunterladen](https://github.com/parasitid/bhikers.club/releases/latest/download/club.bhikers.bhikersclub_latest.apk)
+
+Diese Version wird regelmäßig mit den neuesten Funktionen und Fehlerbehebungen aktualisiert. Stelle sicher, dass du auf deinem Android-Gerät "Installation aus unbekannten Quellen" aktivierst, bevor du die App installierst.
+
 ## 🛠 Funktionen
 - ✅ Finde **Restaurants, Bäckereien, Hotels, Campingplätze, Unterkünfte, Wasserbrunnen...** in deiner Nähe
 - ✅ **Mit einer GPS-Navigations-App teilen**
