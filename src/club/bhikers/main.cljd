@@ -282,7 +282,8 @@
                               (when (not= align-position-on-update maploc/AlignOnUpdate.always)
                                 (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.always))
                               (when (not (.-isClosed align-position-stream-controller))
-                                (.add ^#/(async/StreamController double?) align-position-stream-controller 12.0))))
+                                ;; send nil to keep current zoom level
+                                (.add ^#/(async/StreamController double?) align-position-stream-controller nil))))
 
        (map/Scalebar
         .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
