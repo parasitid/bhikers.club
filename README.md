@@ -19,14 +19,13 @@
 ## 📌 About
 **Bhikers club** is a free and privacy-focused Android & iOS mobile app for cyclists and hikers, based on OpenStreetMap data and services. It helps you locate essential spots while on the road, whether you need a **restaurant**, a **bakery**, a **hotel**,  a **camping site**, a **shelter**, or a **water fountain**. 
 
-🚴‍♀️ **One of our goal is to map more bhikers-friendly places!** Users can contribute by tagging Points of Interest (POIs) in **OpenStreetMap (OSM)** with the (bike_friend)[https://taginfo.openstreetmap.org/keys/bike_friend#overview] special tag, making the cycling community stronger and more informed.
+🚴‍♀️ **One of our goal is to map more bhikers-friendly places!** Users can contribute by tagging Points of Interest (POIs) in **OpenStreetMap (OSM)** with the [bike_friend]https://taginfo.openstreetmap.org/keys/bike_friend#overview) special tag, making the cycling community stronger and more informed.
 
 ## 🛠 Features
 - ✅ Find nearby **restaurants, bakeries, hotels, campgrounds, shelters, water fountains and stuff...**
 - ❌ **Share with GPS navigation app** – *Coming soon!* 
 - ❌ **Offline mode** – *Coming soon!* 
 - ❌ **Enhance GPX** – *Coming soon!* 
-- ❌ **Recommand places to the club** – *Coming soon!* 
 - ❌ **Tag bike_friend POIs** – *Coming soon!* 
 
 ## 🛠 Work in Progress
