@@ -1,9 +1,9 @@
 (ns club.bhikers.main
   "Bhikers Club App by ParaSitid"
   (:require ["package:flutter/material.dart" :as m]
-           ["package:flutter/foundation.dart" :as foundation]
            ["package:flutter_map/flutter_map.dart" :as map]
            ["package:latlong2/latlong.dart" :as ll]
+           ["package:geolocator/geolocator.dart" :as geo]
            ["package:easy_localization/easy_localization.dart" :as l10n]
            ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
@@ -18,14 +18,14 @@
             :refer [l10n-str log create-cache-store]]
            [club.bhikers.notifications
             :refer
-            [new-notif
-             debug-notif
+            [debug-notif
              notifications
              dismiss-notif
              dismiss-all-notifs]]
            [club.bhikers.position
             :refer
-            [new-position-stream
+            [new-position-stream-controller
+             new-position-bstream
              ->location-marker-stream
              subscribe-position-stream]]
            [cljd.flutter :as f]))
@@ -59,16 +59,16 @@
    :get [m/Navigator
          m/Theme]
    :let [drawer-routes [["/around-me"
-                         (l10n/tr "around_me.screen_title")
+                         (l10n-str "around_me.screen_title")
                          m/Icons.location_pin]
                         ["/enhance-gpx"
-                         (l10n/tr "enhance_gpx.screen_title")
+                         (l10n-str "enhance_gpx.screen_title")
                          m/Icons.hotel_class_outlined]
                         ["/fall-detector"
-                         (l10n/tr "fall_detector.screen_title")
+                         (l10n-str "fall_detector.screen_title")
                          m/Icons.crisis_alert]
                         ["/settings"
-                         (l10n/tr "settings.screen_title")
+                         (l10n-str "settings.screen_title")
                          m/Icons.settings]]]
    m/Drawer
     (m/ListView
@@ -91,12 +91,12 @@
                 [(m/AboutListTile
                   .icon (m/Icon m/Icons.info)
                   .applicationIcon nil
-                  .applicationName (l10n/tr "app.title")
+                  .applicationName (l10n-str "app.title")
                   .applicationVersion "v0"
-                  .applicationLegalese (l10n/tr "about.legalese")
+                  .applicationLegalese (l10n-str "about.legalese")
                   .aboutBoxChildren [(m/SizedBox .height 24)
                                      (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)
-                                                                   .text (l10n/tr "about.description")))])]))))
+                                                                   .text (l10n-str "about.description")))])]))))
 
 (defn notifications-list-widget []
   (f/widget
@@ -106,10 +106,10 @@
     .children
     (into [(m/ListTile
             .leading (m/Icon m/Icons.notification_important)
-            .title (m/Text (l10n/tr "notifications.title"))
+            .title (m/Text (l10n-str "notifications.title"))
             .trailing (m/IconButton
                        .icon (m/Icon m/Icons.delete_sweep)
-                       .tooltip (l10n/tr "notifications.dismiss_all")
+                       .tooltip (l10n-str "notifications.dismiss_all")
                        .onPressed #(dismiss-all-notifs)))]
           (map
            (fn [[id txt]] (m/Dismissible
@@ -120,7 +120,7 @@
 
 (defn app-bar [& {:keys [additional-actions]
                   :or {additional-actions []}}]
-  (m/AppBar .title (m/Text (l10n/tr "app.title"))
+  (m/AppBar .title (m/Text (l10n-str "app.title"))
             .actions (into
                       [(f/widget
                         :context ctx
@@ -151,11 +151,11 @@
     .padding (m/EdgeInsets.all 2.0)
     .children
     (map (fn [poi] (m/RadioListTile
-                    .title (m/Text (l10n/tr (str "around_me.pois." poi)))
+                    .title (m/Text (l10n-str (str "around_me.pois." poi)))
                     .value poi
                     .groupValue selected-poi-type
                     .onChanged (fn [val]
-                                 (when (not= val (get map-state :selected-poi-type))
+                                 (when (not= val (get @map-state :selected-poi-type))
                                    (log "changed poi type to " val)
                                    (swap! map-state assoc :selected-poi-type val))
                                  (.pop navigator))))
@@ -170,7 +170,7 @@
               (m/Container .height 300)
               (m/ListView .children (map (fn [[name value]]
                                            (m/ListTile
-                                            .subtitle (m/Text (l10n/tr name))
+                                            .subtitle (m/Text (l10n-str name))
                                             .title (m/Text value)))
                                          (get poi "tags" {})))))))
 
@@ -179,31 +179,136 @@
 ;; - get and extract json data from overpass-api-de accordingly
 ;; - return a widget of markers for each element returned
 ;; - if no response or error, return empty widget
-(defn around-me-pois-markers-widget [radius]
-  (f/widget
-   :context ctx
-   :get [:overpass-api :map-state]
-   :watch [{:keys [selected-poi-type current-pos]} map-state
-           pois (if (not current-pos)
-                  (do (log "current-pos is still unknown...") nil)
-                  (await (overpass-query overpass-api current-pos selected-poi-type)))]
-   (if pois
-     (map/MarkerLayer
-      .markers (map #(map/Marker .point (ll/LatLng (get % "lat")
-                                                   (get % "lon"))
-                                 .height 40
-                                 .width 40
-                                 .child (m/GestureDetector
-                                         .onTap (fn [] (around-me-show-poi-info ctx %))
-                                         .child (m/Icon m/Icons.location_pin
-                                                        .size 40)))
-                    pois))
-     (m/Container))))
+(defn around-me-pois-markers-widget [& {:keys [radius] :or {radius 1000}}]
+  (f/widget :context ctx :get [:map-state :overpass-api]
+            :watch [pois (let [pois (atom [])]
+                           (add-watch map-state :refresh-pois
+                                      (fn [_ _ old-state new-state]
+                                        (when (not= (select-keys old-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?])
+                                                    (select-keys new-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?]))
+                                          (debug-notif "refreshing pois!")
+                                          (let [{:keys [selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
+                                            (when (or (and current-pos-as-center? current-pos) current-center)
+                                              (let [results (await (overpass-query overpass-api
+                                                                                   (if (and current-pos-as-center? current-pos) current-pos current-center)
+                                                                                   selected-poi-type :radius radius))]
+                                                (if results
+                                                  (reset! pois results)
+                                                  (debug-notif "no pois fetched! map-state was: " new-state))))))))
+                           pois)]
+   (map/MarkerLayer
+    .markers (map #(map/Marker .point (ll/LatLng (get % "lat") (get % "lon"))
+                               .height 40
+                               .width 40
+                               .child (m/GestureDetector
+                                       .onTap (fn [] (around-me-show-poi-info ctx %))
+                                       .child (m/Icon m/Icons.location_pin
+                                                      .size 40)))
+                  pois))))
+
 
 ;; Setup around me main screen with Flutter Map,
 ;; centered on device's current position
 ;; with markers representing selected POIs in a certain radius
 ;; around current position
+(defn new-map-state []
+  (atom {:selected-poi-type default-poi-type
+         :current-pos nil
+         :current-center nil
+         :current-pos-as-center? true
+         :align-position-on-update maploc/AlignOnUpdate.always}))
+
+(defprotocol disposable-map-streams
+  (dispose! [this])
+  (init! [this])
+  (location-marker-stream [this])
+  (align-position-stream [this])
+  (align-on-current-pos-callback [this])
+  (new-center! [this [lat lon]])
+  (stop-alignment! [this]))
+
+
+(defn ->map-state-streams [map-state]
+  (reify disposable-map-streams
+    (dispose! [this]
+      (let [{:keys [streamz]} @map-state
+            {:keys [pss apsc psc]} streamz]
+        (when pss
+          (log "cancel subscription")
+          (.cancel ^#/(async/StreamSubscription geo/Position?) pss))
+        (when apsc
+          (log "cancel align position stream controller.")
+          (.close ^#/(async/StreamController double?) apsc))
+        (when psc
+          (log "cancel position stream controller")
+          (.close ^#/(async/StreamController geo/Position?) psc))
+        (swap! map-state dissoc :streamz))
+      this)
+
+    (init! [this]
+      (let [psc (new-position-stream-controller)
+            apsc (#/(async/StreamController double?))
+            ps (new-position-bstream psc)
+            lms (->location-marker-stream ps)
+            pss (subscribe-position-stream
+                 ps
+                 (fn [lat lon]
+                   (log "position event from stream: " lat " " lon)
+                   (let [{:keys [current-pos]} @map-state]
+                     (when (not= [lat lon] current-pos)
+                       (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
+                       ;; swap position before refreshing pois
+                       (swap! map-state assoc :current-pos [lat lon])))))]
+
+        (swap! map-state assoc :streamz
+               {:psc psc :ps ps :apsc apsc :lms lms :pss pss}))
+      this)
+    (location-marker-stream [_]
+      (let [{:keys [streamz]} @map-state
+            {:keys [lms]} streamz]
+        lms))
+    (align-position-stream [_]
+      (let [{:keys [streamz]} @map-state
+            {:keys [apsc]} streamz]
+        (when apsc (.-stream ^#/(async/StreamController double?) apsc))))
+    (align-on-current-pos-callback [_]
+      (fn []
+       (let [{:keys [streamz current-pos-as-center? align-position-on-update]} @map-state
+             {:keys [apsc]} streamz]
+         (debug-notif "(re)align map on current position")
+         (when (or (not= align-position-on-update maploc/AlignOnUpdate.always)
+                   (not current-pos-as-center?))
+           (swap! map-state assoc
+                  :align-position-on-update maploc/AlignOnUpdate.always
+                  :current-pos-as-center? true))
+         (when (and apsc (not (.-isClosed ^#/(async/StreamController double?) apsc)))
+           (.add ^#/(async/StreamController double?) apsc nil)))))
+    (new-center! [_ [lat lon]]
+      (swap! map-state assoc
+             :align-position-on-update maploc/AlignOnUpdate.never
+             :current-center [lat lon]
+             :current-pos-as-center? false))
+   (stop-alignment! [_]
+     ;; beware gestures are flooding calls
+     (let [{:keys [align-position-on-update]} @map-state]
+       (when (not= align-position-on-update maploc/AlignOnUpdate.never)
+         (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never))))))
+
+(defn new-current-center-marker [current-pos-as-center? current-center]
+  (if (and current-center (not current-pos-as-center?))
+    (let [[lat lon] current-center]
+      (maploc/AnimatedLocationMarkerLayer
+       .position (maploc/LocationMarkerPosition .latitude lat .longitude lon .accuracy 0)))
+    (m/Container)))
+
+(defn new-current-location-marker-style [current-pos-as-center? theme]
+  (maploc/LocationMarkerStyle
+   .showAccuracyCircle false
+   .showHeadingSector false
+   .marker (maploc/DefaultLocationMarker
+            .color (if current-pos-as-center?
+                     (-> ^m/ThemeData theme .-colorScheme .-primary)
+                     (-> ^m/ThemeData theme .-colorScheme .-secondary)))))
 
 ;; around me main screen
 ;; a map with
@@ -215,22 +320,10 @@
 (defn around-me-screen []
   (f/widget
    :let [scaffold-key (#/(m/GlobalKey m/ScaffoldState))]
-   :bind {:map-state (atom {:selected-poi-type default-poi-type
-                            :current-pos false
-                            :align-position-on-update maploc/AlignOnUpdate.always})}
-   :get [:map-state]
-   :managed [position-stream (new-position-stream) :dispose nil
-             location-marker-stream (->location-marker-stream position-stream) :dispose nil
-             position-listener (subscribe-position-stream
-                                position-stream
-                                (fn [lat lon]
-                                  (log "position event from stream: " lat " " lon)
-                                  (when (not= [lat lon] (get @map-state :current-pos))
-                                    (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
-                                    (swap! map-state assoc :current-pos [lat lon])
-                                    (log "new map state is " (get @map-state :current-pos)))))
-             :dispose .cancel]
-
+   :bind {:map-state (new-map-state)}
+   :get [:map-state m/Theme]
+   :managed [dms (-> map-state ->map-state-streams init!) :dispose dispose!]
+   :watch [{:keys [align-position-on-update current-pos-as-center? current-center]} map-state]
    (m/Scaffold
     .key scaffold-key
     .appBar (app-bar :additional-actions
@@ -242,54 +335,40 @@
     .drawer (drawer)
     .endDrawer (around-me-enddrawer)
     .body
-    (f/widget
-     :get [:map-state]
-     :watch [{:keys [align-position-on-update]} map-state]
-     :managed [align-position-stream-controller (#/(async/StreamController double?))
-               :dispose .close]
-     (map/FlutterMap
-      .options (map/MapOptions
-                .initialZoom 12
-                .minZoom 0
-                .maxZoom 18
-                ;; Stop aligning the location marker to the center of the map widget
-                ;; if user interacted with the map
-                .onPositionChanged (fn [camera hasGesture]
-                                     (when (and hasGesture
-                                                (not= align-position-on-update maploc/AlignOnUpdate.never))
-                                       (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never))))
-      .children
-      [(map/TileLayer
-        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        .userAgentPackageName "club.bhikers"
-        .tileProvider (cmap/CancellableNetworkTileProvider)
-        .maxZoom 18)
-       (around-me-pois-markers-widget 5000)
-       (maploc/CurrentLocationLayer
-        .style (maploc/LocationMarkerStyle
-                .showAccuracyCircle false
-                .showHeadingSector false)
-        .positionStream location-marker-stream
-        .alignPositionStream (when (not (.-isClosed align-position-stream-controller))
-                               (-> align-position-stream-controller .-stream))
-        .alignPositionOnUpdate align-position-on-update
-        .followOnLocationUpdate maploc/FollowOnLocationUpdate.always
-        .alignDirectionOnUpdate maploc/AlignOnUpdate.never)
-       (mcb/control-buttons :alignment m/Alignment.bottomRight
-                            :onMyLocation
-                            (fn []
-                              (debug-notif "align map on current position")
-                              (when (not= align-position-on-update maploc/AlignOnUpdate.always)
-                                (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.always))
-                              (when (not (.-isClosed align-position-stream-controller))
-                                ;; send nil to keep current zoom level
-                                (.add ^#/(async/StreamController double?) align-position-stream-controller nil))))
+    (map/FlutterMap
+     .options (map/MapOptions
+               .initialZoom 14
+               .initialCenter (ll/LatLng 48.51479 2.65053)
+               .minZoom 0
+               .maxZoom 18
+               .onLongPress (fn [_ ^ll/LatLng point]
+                              (new-center! dms [(.-latitude point) (.-longitude point)]))
 
-       (map/Scalebar
-        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
-        .alignment m/Alignment.bottomLeft
-        .length map/ScalebarLength.m)
-       (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)])))))
+               ;; Stop aligning the location marker to the center of the map widget
+               ;; if user interacted with the map
+               .onPositionChanged (fn [_ hasGesture] (when hasGesture (stop-alignment! dms))))
+     .children
+     [(map/TileLayer
+       .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+       .userAgentPackageName "club.bhikers"
+       .tileProvider (cmap/CancellableNetworkTileProvider)
+       .maxZoom 18)
+      (around-me-pois-markers-widget)
+      (maploc/CurrentLocationLayer
+       .style (new-current-location-marker-style current-pos-as-center? theme)
+       .positionStream (location-marker-stream dms)
+       .alignPositionStream (align-position-stream dms)
+       .alignPositionOnUpdate align-position-on-update
+       .followOnLocationUpdate maploc/FollowOnLocationUpdate.always
+       .alignDirectionOnUpdate maploc/AlignOnUpdate.never)
+      (mcb/control-buttons :alignment m/Alignment.bottomRight
+                           :onMyLocation (align-on-current-pos-callback dms))
+      (map/Scalebar
+       .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+       .alignment m/Alignment.bottomLeft
+       .length map/ScalebarLength.m)
+      (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)
+      (new-current-center-marker current-pos-as-center? current-center)]))))
 
 
 ;; Setup enhance gpx screen
@@ -302,7 +381,7 @@
    .drawer (drawer)
    .body (f/widget
           m/Center
-          (m/Text (l10n/tr "enhance_gpx.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+          (m/Text (l10n-str "enhance_gpx.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
 ;; Setup enhance gpx screen
 ;; TODO:
@@ -314,7 +393,7 @@
    .drawer (drawer)
    .body (f/widget
           m/Center
-          (m/Text (l10n/tr "fall_detector.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+          (m/Text (l10n-str "fall_detector.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
 ;; Setup settings screen
 ;; setup various settings options
@@ -326,33 +405,33 @@
           :context ctx
           m/Container
           (settings/SettingsScreen
-           .title  (l10n/tr "settings.screen_title")
+           .title  (l10n-str "settings.screen_title")
            .children
            [(settings/SettingsGroup
-             .title  (l10n/tr "settings.general_group_title")
+             .title  (l10n-str "settings.general_group_title")
              .children
              [(#/(settings/DropDownSettingsTile String)
                  .leading (m/Icon m/Icons.language)
                  .settingKey "/general/language"
-                 .title  (l10n/tr "settings.language")
-                 .values (into {} (map (fn [lang] [lang (l10n/tr (str "settings.langs." lang))])
+                 .title  (l10n-str "settings.language")
+                 .values (into {} (map (fn [lang] [lang (l10n-str (str "settings.langs." lang))])
                                        supported-locales))
                  .selected default-locale
                  .onChange #(do (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
                                 nil))])
 
             (settings/SettingsGroup
-             .title  (l10n/tr "settings.fall_detector_group_title")
+             .title  (l10n-str "settings.fall_detector_group_title")
              .children
              [(settings/SwitchSettingsTile
                .leading (m/Icon m/Icons.crisis_alert)
                .settingKey "/fall-detector/alert-mode"
-               .title (l10n/tr "settings.alert_mode")
+               .title (l10n-str "settings.alert_mode")
                .onChange #(log "switched fall-detector-mode to " %)
                .childrenIfEnabled
                [(settings/TextInputSettingsTile
                  .settingKey "/fall-detector/emergency-contact-phone-number"
-                 .title (l10n/tr "settings.emerengcy_contact_phone_number")
+                 .title (l10n-str "settings.emerengcy_contact_phone_number")
                  .validator #(do (log "phone number " %)
                                  nil)
                  .initialValue  "+33000000000")])])]))))
@@ -379,16 +458,15 @@
 ;; init settings, localizqtion
 ;; run MaterialApp with default screen "Around Me"
 (defn main []
-  (do
-    ;; careful: order matters
-    (log "init settings with shared preference cache provider")
-    (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
-    (log "init flutter bindings")
-    (m/WidgetsFlutterBinding.ensureInitialized)
-    (log "init easy l10n")
-    (await (l10n/EasyLocalization.ensureInitialized))
-   (debug-notif "starting app")
-   (f/run
+  ;; careful: order matters
+  (log "init settings with shared preference cache provider")
+  (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+  (log "init flutter bindings")
+  (m/WidgetsFlutterBinding.ensureInitialized)
+  (log "init easy l10n")
+  (await (l10n/EasyLocalization.ensureInitialized))
+  (debug-notif "starting app")
+  (f/run
     (f/widget
      (l10n/EasyLocalization
       .supportedLocales (map #(m/Locale %) supported-locales)
@@ -415,4 +493,4 @@
                      {"/around-me" around-me-screen
                       "/enhance-gpx" enhance-gpx-screen
                       "/fall-detector" fall-detector-screen
-                      "/settings" settings-screen})))))))
+                      "/settings" settings-screen}))))))
