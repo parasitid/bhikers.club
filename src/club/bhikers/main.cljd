@@ -25,6 +25,8 @@
                               "restaurants" "bakeries"
                               "bikeshops" "bottlerefills"])
 
+(defonce default-poi-type "shelters")
+
 (defn drawer []
   (f/widget
    :get [m/Navigator]
@@ -86,7 +88,7 @@
 
 (defn around-me-screen []
   (f/widget
-   :bind {:selected-poi-type (atom "shelters")}
+   :bind {:selected-poi-type (atom default-poi-type)}
    (m/Scaffold
     .appBar (app-bar)
     .drawer (drawer)
