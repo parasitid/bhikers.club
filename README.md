@@ -1,16 +1,25 @@
-# bhikers club app
+<p align="center">
+  <img src="./src/resources/logo.png" alt="Logo del Bhikers Club">
+</p>
+<p align="center">
+  <img src="./src/resources/icons/icon.png" alt="Bhikers Club icon">
+</p>
 
-A new Flutter project.
+# bhikers club app – Your Essential Cycling Companion
 
-## Getting Started
+🌍 **Read this in other languages:** 
+🇬🇧 English | 🇫🇷 [Français](README.fr.md) | 🇩🇪 [Deutsch](README.de.md) | 🇪🇸 [Español](README.es.md) | 🇮🇹 [Italiano](README.it.md) 
 
-This project is a starting point for a Flutter application.
+## 📌 About
+**Bhikers club** is a free and privacy-focused Android & iOS mobile app for cyclists and hikers, based on OpenStreetMap data and services. It helps you locate essential spots while on the road, whether you need a **restaurant**, a **bakery**, a **hotel**,  a **camping site**, a **shelter**, or a **water fountain**. 
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠 Features
+- ✅ Find nearby **restaurants, bakeries, hotels, campgrounds, shelters, water fountains and stuff...**
+- ❌ **Share with GPS navigation app** – *Coming soon!* 
+- ❌ **Offline mode** – *Coming soon!* 
+- ❌ **Enhance GPX** – *Coming soon!* 
+- ❌ **Recommand places to the club** – *Coming soon!* 
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 📜 Manifestos
+- 🚴 [Bhikers Club Good Fellow Manifesto](BHIKERS_CLUB_GOOD_FELLOW.en.md)
+- 📱 [The Frugal App Manifesto](FRUGALAPP_MANIFESTO.en.md)
