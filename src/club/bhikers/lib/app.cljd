@@ -1,8 +1,12 @@
 (ns club.bhikers.lib.app
   (:require ["package:flutter_settings_screens/flutter_settings_screens.dart" :refer [Settings]]
-            ["package:latlong2/latlong.dart" :as ll]))
+            ["package:path_provider/path_provider.dart" :refer [getApplicationDocumentsDirectory]]
+            ["package:flutter/foundation.dart" :refer [kDebugMode]]
+            ["package:latlong2/latlong.dart" :as ll]
+            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
+            ["package:easy_localization/easy_localization.dart" :as l10n]
+            ["dart:io" :refer [Directory]]))
 
-(defonce force-debug-mode (atom true))
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
 (defonce default-locale "en")
 (defonce max-pois-radius 10000);; 20km
@@ -11,24 +15,37 @@
                               "hotel"
                               "campsite"
                               "restaurant"
-                              "bakery"
+                              "sandwich"
                               "bikeshop"
                               "bottlerefill"
                               "toilet"])
 
-
-(defonce default-poi-type "bakery")
+(defonce default-poi-type "sandwich")
 (defonce selected-poi-type (atom default-poi-type))
-
 (defonce icicommencelaventure (ll/LatLng 48.51479 2.65053))
 (defonce vertouplage (ll/LatLng 47.1612 -1.4778))
 
-(defonce api-query-timeout
-  (atom (int/tryParse (#/(.getValue String) Settings "/advanced/api_query_timeout"
-                         .defaultValue "3"))))
-(defonce pois-radius
-  (atom (#/(.getValue double) Settings "/general/pois_radius"
-           .defaultValue 1000)))
+(defonce api-query-timeout (atom 3))
 
+(defn ^#/(Future Directory) log-file-dir [] (await (getApplicationDocumentsDirectory)))
+
+(defonce pois-radius (atom 1000))
 (defonce feat-fall-detector? false)
 (defonce feat-enhance-gpx? false)
+
+(defn debug-mode? [] (or @force-debug-mode? kDebugMode))
+
+(defonce force-debug-mode? (atom false))
+
+(defn init! []
+  (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+  (await (l10n/EasyLocalization.ensureInitialized))
+
+  (swap! pois-radius (constantly (#/(.getValue double) Settings "/general/pois-radius"
+                                                       .defaultValue 1000)))
+  (swap! api-query-timeout (constantly (int/tryParse (#/(.getValue String) Settings "/advanced/api-query-timeout"
+                                                                           .defaultValue "5"))))
+  (swap! force-debug-mode? (constantly (#/(.getValue bool) Settings "/advanced/debug-mode?"
+                                                           .defaultValue false)))
+  (swap! selected-poi-type (constantly (#/(.getValue String) Settings "/general/default-poi-type"
+                                                             .defaultValue default-poi-type))))

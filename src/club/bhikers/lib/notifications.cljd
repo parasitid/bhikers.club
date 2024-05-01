@@ -1,6 +1,8 @@
 (ns club.bhikers.lib.notifications
   (:require
-   [club.bhikers.lib.utils :refer [debug-mode? log uuid-v4]]))
+   [club.bhikers.lib.app :refer [debug-mode?]]
+   [club.bhikers.lib.logging :as logging]
+   [club.bhikers.lib.utils :refer [uuid-v4]]))
 
 (defonce notifications (atom {}))
 
@@ -10,13 +12,13 @@
 (defn debug-notif [& args]
   (when (debug-mode?)
     (let [msg (apply str args)]
-      (log "new notif: " msg)
+      (logging/d "new notif: " msg)
       (new-notif (str "🐛") msg))))
 
 (defn dismiss-notif [id]
-  (log "dismissing notif " id)
+  (logging/d "dismissing notif " id)
   (swap! notifications dissoc id))
 
 (defn dismiss-all-notifs []
-  (log "dismissing all notifications")
+  (logging/d "dismissing all notifications")
   (reset! notifications {}))

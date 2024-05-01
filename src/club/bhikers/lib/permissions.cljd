@@ -5,39 +5,39 @@
    ["package:flutter/foundation.dart" :as foundation]
    ["dart:io" :as io]
    [club.bhikers.lib.notifications :refer [new-notif]]
-   [club.bhikers.lib.utils :refer [log]]))
+   [club.bhikers.lib.logging :as logging]))
 
 ;; permissions helpers
 ;;
 (defn permission-request [permission granted-fn]
-  (log "requesting permission " permission)
+  (logging/d "requesting permission " permission)
   (let [status (await (-> permission perms/PermissionActions (.request)))]
     (cond
       (== perms/PermissionStatus.granted status) (granted-fn)
       (== perms/PermissionStatus.denied status) (permission-request permission granted-fn)
       (== perms/PermissionStatus.permanentlyDenied status) (perms/openAppSettings)
-      :else (log "permission status " status " unsupported. ignoring."))))
+      :else (logging/d "permission status " status " unsupported. ignoring."))))
 
 (defn check-permission [permission granted-fn]
-  (log "checking permission " permission)
+  (logging/d "checking permission " permission)
   (let [status (await (-> permission perms/PermissionActions (.-status)))]
     (cond
       (== perms/PermissionStatus.granted status)
       (do
-        (log "check granted for " permission)
+        (logging/d "check granted for " permission)
         (granted-fn))
       (== perms/PermissionStatus.denied status)
       (do
-         (log "check denied for " permission)
-         (await (permission-request permission granted-fn)))
+        (logging/d "check denied for " permission)
+        (await (permission-request permission granted-fn)))
       (== perms/PermissionStatus.permanentlyDenied status)
       (do
         (new-notif (str (l10n/tr "common.permission-denied") permission))
         (perms/openAppSettings))
-      :else (log "permission status " status " unsupported. ignoring?"))))
+      :else (logging/d "permission status " status " unsupported. ignoring?"))))
 
 (defn check-location-permission []
   (check-permission (if (and (not foundation/kIsWeb) io/Platform.isAndroid)
-                        perms/Permission.locationWhenInUse
-                        perms/Permission.location)
-                    #(log "location perm granted!")))
+                      perms/Permission.locationWhenInUse
+                      perms/Permission.location)
+                    #(logging/d "location perm granted!")))

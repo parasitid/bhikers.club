@@ -1,3 +1,4 @@
+.PHONY: test
 ##
 # Bhikers Club
 #
@@ -30,3 +31,9 @@ clean-full: clean ## full clean
 upgrade:
 	clj -M:cljd upgrade
 	flutter pub upgrade
+
+format:
+	cljfmt fix --file-pattern '\.cljd' src/club/bhikers/
+
+precompile-svg:
+	flutter pub run vector_graphics_compiler --libpathops $(FLUTTER_HOME)/bin/cache/artifacts/engine/linux-x64/libpath_ops.so --input-dir ./src/resources/icons/symbols/

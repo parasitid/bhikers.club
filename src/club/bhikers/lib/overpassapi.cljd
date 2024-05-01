@@ -1,14 +1,15 @@
 (ns club.bhikers.lib.overpassapi
   (:require
+   [clojure.string :refer [replace]]
    ["package:dio/dio.dart" :as dio]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
    [club.bhikers.lib.notifications :refer [debug-notif]]
    [club.bhikers.lib.app :refer [api-query-timeout]]
-   [club.bhikers.lib.utils :refer [log uuid-v5 create-cache-store]]))
-
+   [club.bhikers.lib.utils :refer [uuid-v5 create-cache-store]]
+   [club.bhikers.lib.logging :as logging]))
 
 (defn create-dio-instance ^dio/Dio [base-url cache-store]
-  (log "create dio instance for url " base-url)
+  (logging/d "create dio instance for url " base-url)
   (let [api (dio/Dio
              (dio/BaseOptions .baseUrl base-url
                               .connectTimeout (Duration .seconds @api-query-timeout)
@@ -31,10 +32,11 @@
       (.add (dio/LogInterceptor)))
     api))
 
-
 (defprotocol disposable-overpass-api
   (dispose! [this])
-  (query [this latlon osm-tag radius]))
+  (query [this type lat lon osm-tags radius]))
+
+(defn quote-key [^String s] (replace s #"(.*)=" "\"$1\"="))
 
 ;; overpass api whi cache queries without a ttl.
 ;; it will try overpass-api.de and fallback to maps.mail.ru if there's an issue or timeout
@@ -44,28 +46,26 @@
   (let [cache-store (create-cache-store 20 (* 1024 1024))
         apis {:instance1 (create-dio-instance "https://overpass-api.de/api/interpreter?" cache-store)
               :instance2 (create-dio-instance "https://maps.mail.ru/osm/tools/overpass/api/interpreter?" cache-store)}]
+
     (reify disposable-overpass-api
       (dispose! [this]
         (.close cache-store)
         (.close ^dio/Dio (get apis :instance1))
         (.close ^dio/Dio (get apis :instance2))
         this)
-
-      (query [_ latlon osm-tags radius]
-        (let [[lat lon] latlon
-              tags-quey (apply str (interpose ";"  (map #(str "node[" % "](around:" radius "," lat "," lon ")") osm-tags)))
-              query (str "data=[out:json][timeout:"@api-query-timeout"];(" tags-quey ";);out;")
+      (query [_ type lat lon osm-tags radius]
+        (let [tags-query (apply str (interpose ";" (map #(str type "[" (quote-key %) "](around:" radius "," lat "," lon ")") osm-tags)))
+              query (str "data=[out:json][timeout:" @api-query-timeout "];(" tags-query ";);" (if (= type "way") "(._;>;);" "") "out;")
               try-request (fn [api-instance]
                             (try
-                              (log "Will request: " (-> ^dio/Dio api-instance .-options .-baseUrl) query)
+                              (logging/d "Will request: " (-> ^dio/Dio api-instance .-options .-baseUrl) query)
                               (await (.get ^dio/Dio api-instance query))
                               (catch dio/DioException e
-                                (do (log "Exception! " e)
-                                    (debug-notif (-> ^dio/Dio api-instance .-options .-baseUrl) " is currently having issues...")
+                                (do (logging/d "Exception! " e)
                                     nil))))
-              response (or (await (try-request (get apis :instance2)))
-                           (await (try-request (get apis :instance1))))]
+              response (or (await (try-request (get apis :instance1)))
+                           (await (try-request (get apis :instance2))))]
           (when response
             (let [{{elements "elements"} .-data} ^dio/Response response]
-              (log "elements fetched from api: " elements)
+              (logging/d "elements fetched from api: " elements)
               elements)))))))

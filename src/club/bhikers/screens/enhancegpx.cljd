@@ -1,8 +1,8 @@
 (ns club.bhikers.screens.enhancegpx
   (:require ["package:flutter/material.dart" :as m]
-           [club.bhikers.screens.common :refer [app-bar drawer]]
-           [club.bhikers.lib.utils :refer [l10n-str]]
-           [cljd.flutter :as f]))
+            [club.bhikers.screens.common :refer [app-bar drawer]]
+            [club.bhikers.lib.utils :refer [l10n-str]]
+            [cljd.flutter :as f]))
 
 ;; Setup enhance gpx screen
 ;; TODO:

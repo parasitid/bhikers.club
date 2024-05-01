@@ -11,6 +11,7 @@ settings:
   advanced_group_title: Advanced
   api_query_timeout: API query timeout (in seconds)
   timeout_input_validation_error: Timeout must be a valid integer 2 < timeout < 10
+  debug_mode: Enable debug mode
   langs:
     en: English
     fr: French
@@ -29,23 +30,21 @@ around_me:
   no_permission: Please grant Location permission
   unknown_location: Current location unknown...
   poi_types:
-    bhiker: Bhikers
     shelter: Shelters
     hotel: Hotels
     campsite: Camp sites
     restaurant: Restaurants
     bottlerefill: Bottle refills
-    bakery: Bakeries
+    sandwich: Sandwichs
     bikeshop: Bike shops
     toilet: Toilets
   pois:
-    bhiker: "@:common.bhiker_emoji @:around_me.poi_types.bhiker"
     shelter: "@:common.shelter_emoji @:around_me.poi_types.shelter"
     hotel: "@:common.hotel_emoji @:around_me.poi_types.hotel"
     campsite: "@:common.campsite_emoji @:around_me.poi_types.campsite"
     restaurant: "@:common.restaurant_emoji @:around_me.poi_types.restaurant"
     bottlerefill: "@:common.bottlerefill_emoji @:around_me.poi_types.bottlerefill"
-    bakery: "@:common.bakery_emoji @:around_me.poi_types.bakery"
+    sandwich: "@:common.sandwich_emoji @:around_me.poi_types.sandwich"
     bikeshop: "@:common.bikeshop_emoji @:around_me.poi_types.bikeshop"
     toilet: "@:common.toilet_emoji @:around_me.poi_types.toilet"
 about:
@@ -55,16 +54,19 @@ about:
 common:
   close: Close
   permission-denied: permission permanently denied for
-  bhiker_emoji: 🚴
   shelter_emoji: ☔
-  hotel_emoji: 🏨
+  hotel_emoji: 🛏️
   campsite_emoji: ⛺
-  restaurant_emoji: 🍽️
+  restaurant_emoji: 🍽️ ☕
   bottlerefill_emoji: 🚰
-  bakery_emoji: 🥪
-  bikeshop_emoji: 🔧
+  sandwich_emoji: 🥪🥐🥖
+  bikeshop_emoji: 🚴🔧
   toilet_emoji: 🚽
   radius: Search radius
   no_name: No name
 notifications:
   title: Notifications
+debuglog:
+  title: Debug Log File
+  description: Debug Log File
+  no_log_file: Log file doesn't exist

@@ -2,18 +2,9 @@
   (:require
    ["package:uuid/uuid.dart" :as uuid]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
-   ["package:flutter/foundation.dart" :refer [kDebugMode debugPrint]]
-   ["package:easy_localization/easy_localization.dart" :as l10n]
-   [club.bhikers.lib.app :refer [force-debug-mode]]))
-
-(defn debug-mode? [] (or @force-debug-mode kDebugMode))
+   ["package:easy_localization/easy_localization.dart" :as l10n]))
 
 (defn l10n-str [& args] (apply str (map l10n/tr args)))
-
-(defn log [& args]
-  (when (debug-mode?)
-   (debugPrint (apply str (into [(.now DateTime) " [club.bhikers]: "] args)))))
-
 
 ;; Setup dio instance with cache+log interceptors for overpass-api.de
 ;; dio is a lib for http requests

@@ -3,14 +3,13 @@
   (:require ["package:flutter/material.dart" :as m]
             ["package:easy_localization/easy_localization.dart" :as l10n]
             ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
-            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
             [club.bhikers.screens.aroundme :refer [around-me-screen]]
             [club.bhikers.screens.settings :refer [settings-screen]]
             [club.bhikers.screens.enhancegpx :refer [enhance-gpx-screen]]
             [club.bhikers.screens.falldetector :refer [fall-detector-screen]]
-            [club.bhikers.lib.app :refer [supported-locales default-locale]]
+            [club.bhikers.lib.app :as app :refer [supported-locales default-locale init!]]
             [club.bhikers.lib.overpassapi :as oapi]
-            [club.bhikers.lib.utils :refer [log]]
+            [club.bhikers.lib.logging :as logging]
             [club.bhikers.lib.notifications :refer [notifications]]
             [cljd.flutter :as f]))
 
@@ -36,39 +35,37 @@
 ;; run MaterialApp with default screen "Around Me"
 (defn BhikersClubApp [initialRoute]
   (f/widget
-     (l10n/EasyLocalization
-      .supportedLocales (map #(m/Locale %) supported-locales)
-      .fallbackLocale (m/Locale default-locale)
-      .saveLocale true
-      .useOnlyLangCode true
-      .useFallbackTranslations true
-      .assetLoader (l10nassets/YamlAssetLoader)
-      .path "src/resources/langs")
-     (f/widget
-      :context ctx
-      :managed [overpass-api (oapi/new-overpass-api) :dispose oapi/dispose!]
-      :bind {:overpass-api overpass-api
-             :notifications notifications}
-      (m/MaterialApp
-       .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .-localizationDelegates)
-       .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .-supportedLocales)
-       .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .-locale)
-       .initialRoute initialRoute
-       .theme theme
-       .routes (into {}
-                     (keep (fn [[k v]] {k (fn ^m/Widget k [_] (v))}))
-                     {"/around-me" around-me-screen
-                      "/enhance-gpx" enhance-gpx-screen
-                      "/fall-detector" fall-detector-screen
-                      "/settings" settings-screen})))))
+   (l10n/EasyLocalization
+    .supportedLocales (map #(m/Locale %) supported-locales)
+    .fallbackLocale (m/Locale default-locale)
+    .saveLocale true
+    .useOnlyLangCode true
+    .useFallbackTranslations true
+    .assetLoader (l10nassets/YamlAssetLoader)
+    .path "src/resources/langs")
+   (f/widget
+    :context ctx
+    :managed [overpass-api (oapi/new-overpass-api) :dispose oapi/dispose!]
+    :bind {:overpass-api overpass-api
+           :notifications notifications}
+    (m/MaterialApp
+     .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .-localizationDelegates)
+     .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .-supportedLocales)
+     .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .-locale)
+     .initialRoute initialRoute
+     .theme theme
+     .routes (into {}
+                   (keep (fn [[k v]] {k (fn ^m/Widget k [_] (v))}))
+                   {"/around-me" around-me-screen
+                    "/enhance-gpx" enhance-gpx-screen
+                    "/fall-detector" fall-detector-screen
+                    "/settings" settings-screen})))))
 
 (defn main []
   ;; careful: order matters
-  (log "init settings with shared preference cache provider")
-  (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
-  (log "init flutter bindings")
   (m/WidgetsFlutterBinding.ensureInitialized)
-  (log "init easy l10n")
-  (await (l10n/EasyLocalization.ensureInitialized))
-  (log "starting app")
-  (f/run (BhikersClubApp "/around-me")))
+  (await (logging/init!))
+  (await (app/init!))
+  (logging/d "starting app")
+  (f/run (BhikersClubApp "/around-me"))
+  (await logging/close!))

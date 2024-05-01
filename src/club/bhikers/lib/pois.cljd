@@ -1,9 +1,20 @@
 (ns club.bhikers.lib.pois
   (:require
+   [clojure.string :refer [replace]]
+   ["package:latlong2/latlong.dart" :refer [LatLng]]
+   ["package:flutter/material.dart" :as m]
    ["package:url_launcher/url_launcher.dart" :refer [canLaunchUrl launchUrl LaunchMode]]
    ["package:maps_launcher/maps_launcher.dart" :refer [MapsLauncher]]
-   [club.bhikers.lib.utils :refer [log]]
+   ["package:vector_graphics/vector_graphics.dart" :refer [AssetBytesLoader]]
+   ["package:flutter_svg/flutter_svg.dart" :refer [SvgPicture]]
+   ["package:url_launcher/link.dart" :as link]
+   [cljd.flutter :as f]
+   [club.bhikers.lib.utils :refer [l10n-str]]
+   [club.bhikers.lib.logging :as logging]
    [club.bhikers.lib.overpassapi :as oapi]))
+
+(defn osm-tag-icon [type name]
+  (SvgPicture (AssetBytesLoader (str "src/resources/icons/symbols/" type "/" name ".svg.vec"))))
 
 (defonce poi-types->osm-tags {"shelter" ["amenity=shelter"
                                          "shelter=yes"
@@ -19,40 +30,139 @@
                               "campsite" ["tourism=camp_site"
                                           "tourism=alpine_hut"
                                           "tourism=caravan_site"
-                                          "tourism=wilderness_hut"]
-                              "restaurant" ["amenity=restaurant"]
-                              "bakery" ["shop=bakery"
-                                        "cuisine=sandwich"]
+                                          "tourism=wilderness_hut"
+                                          "tourism=picnic_site"]
+                              "restaurant" ["amenity=restaurant"
+                                            "amenity=cafe"]
+                              "sandwich" ["shop=bakery"
+                                          "shop=pastry"
+                                          "cuisine=sandwich"
+                                          "amenity=fast_food"]
                               "bikeshop" ["shop=bicycle"
-                                          "amenity=bicycle_repair_station"]
+                                          "amenity=bicycle_repair_station"
+                                          "service:bicycle:retail=yes"
+                                          "service:bicycle:repair=yes"]
                               "bottlerefill" ["fountain=drinking"
                                               "fountain=bottle_refill"
+                                              "amenity=drinking_water"
+                                              "bottle=yes"
                                               "drinking_water=yes"]
                               "toilet" ["amenity=toilets"
                                         "toilets=yes"
                                         "building=toilets"]})
 
-(defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
+(defonce osm-tags->icons {"service:bicycle:repair=yes" (osm-tag-icon "amenity" "bicycle_repair_station")
+                          "service:bicycle:retail=yes" (osm-tag-icon "shop" "bicycle")
+                          "amenity=bicycle_repair_station" (osm-tag-icon "amenity" "bicycle_repair_station")
+                          "amenity=cafe" (osm-tag-icon "amenity" "cafe")
+                          "amenity=drinking_water" (osm-tag-icon "amenity" "drinking_water")
+                          "amenity=fast_food" (osm-tag-icon "amenity" "fast_food")
+                          "amenity=restaurant" (osm-tag-icon "amenity" "restaurant")
+                          "amenity=shelter" (osm-tag-icon "amenity" "shelter")
+                          "amenity=toilets" (osm-tag-icon "amenity" "toilets")
+                          "bottle=yes" (osm-tag-icon "amenity" "drinking_water")
+                          "building=hotel" (osm-tag-icon "tourism" "hotel")
+                          "building=toilets" (osm-tag-icon "amenity" "toilets")
+                          "cuisine=sandwich" (osm-tag-icon "amenity" "fast_food")
+                          "drinking_water=yes"  (osm-tag-icon "amenity" "drinking_water")
+                          "fountain=bottle_refill"  (osm-tag-icon "amenity" "fountain")
+                          "fountain=drinking"  (osm-tag-icon "amenity" "fountain")
+                          "shelter=yes" (osm-tag-icon "amenity" "shelter")
+                          "shelter_type=picnic_shelter" (osm-tag-icon "amenity" "shelter")
+                          "shelter_type=weather_shelter" (osm-tag-icon "amenity" "shelter")
+                          "shop=bakery" (osm-tag-icon "shop" "bakery")
+                          "shop=bicycle" (osm-tag-icon "shop" "bicycle")
+                          "shop=pastry" (osm-tag-icon "shop" "bakery")
+                          "toilets=yes" (osm-tag-icon "amenity" "toilets")
+                          "tourism=alpine_hut"  (osm-tag-icon "tourism" "alpinehut")
+                          "tourism=camp_site" (osm-tag-icon "tourism" "camp_site")
+                          "tourism=caravan_site" (osm-tag-icon "tourism" "camp_site")
+                          "tourism=guest_house" (osm-tag-icon "tourism" "guest_house")
+                          "tourism=hostel" (osm-tag-icon "tourism" "hostel")
+                          "tourism=hotel" (osm-tag-icon "tourism" "hotel")
+                          "tourism=motel" (osm-tag-icon "tourism" "motel")
+                          "tourism=picnic_site" (osm-tag-icon "tourism" "picnic_site")
+                          "tourism=wilderness_hut" (osm-tag-icon "tourism" "wilderness_hut")})
 
+(defn osm-tag->icon [[type value]]
+  (get osm-tags->icons (str type "=" value)))
+
+(defn poi-type->osm-tags [type] (get poi-types->osm-tags type false))
+
+(defn overpass-item->poi [^Map item items selected-poi-type]
+  (.putIfAbsent item "poi-type" (fn [] selected-poi-type))
+  (when (= (get item "type") "way")
+    ;; finds way's first node id into items to inject lat/lon into item
+    (when-let [first-way-node (some #(let [first-node-id  (first (get item "nodes" []))]
+                                       (when (and (not= nil first-node-id)
+                                                  (= first-node-id (get % "id")))
+                                         %))
+                                    items)]
+      (doto item
+        (.putIfAbsent "lat" (fn [] (get first-way-node "lat")))
+        (.putIfAbsent "lon" (fn [] (get first-way-node "lon"))))))
+  item)
+
+;; The dynamic-map-pois returns an atom of an empty list of POIs and adds
+;; a watch on the map-state.
+;;
+;; Each time an attribute of the map-state which requires to refresh the list of POIs is changed,
+;; we query the overpass api with the following logic.
+;;
+;; To properly request POIs we have to request osm objects of type "node" and also
+;; objects to type "way" because sometimes, POIs have been seeded in OSM within this
+;; type only.
+;; We ask the overpass api to filter the results with the corresponding tags we want
+;; (see poi-types->osm-tags) and within a certain radius.
+;; We then inject the poi-type in the resulting objects. (see overpass-item->poi)
+;;
+;; NOTE:
+;;
+;; To avoid long queries we partition the list of tags
+;; and make multiple queries for each type ["node", "way"] and
+;; tags partition. We update the pois atom list with each subquery's resulting items
+;; to avoid having to wait for many seconds before displaying the whole list of POIs
+;;
+;; NOTE:
+;; - osm objects of type "node" have lat and lon attrs and don't require any additional
+;;   logic.
+;;
+;; - osm objects of type "way" dont have lat and lon attributes but instead a list of node ids.
+;;   So when we query objects of type "way" we ask the overpass api to also return the node objects
+;;   corresponding to the node ids with the special "(._;>;);" query feature.
+;;   For each "way" item found, we post inject its first node's lat lon attributes before returning it
+;;   (see overpass-item->poi)
 (defn dynamic-map-pois [map-state overpass-api]
-  (let [pois (atom [])]
+  (let [pois (atom [])
+        query-reporter (atom "")]
+    (add-watch query-reporter :report-map-msg (fn [_ _ _ new-msg] (swap! map-state assoc :message new-msg)))
     (add-watch map-state :refresh-pois
                (fn [_ _ old-state new-state]
                  (when (not= (select-keys old-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?])
                              (select-keys new-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?]))
-                   (log "refreshing pois!")
-                   (let [{:keys [radius selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
+                   (logging/d "refreshing pois!")
+                   (let [{:keys [radius selected-poi-type current-pos current-center current-pos-as-center?]} new-state
+                         [lat lon] (if (and current-pos-as-center? current-pos) current-pos current-center)
+                         osm-tags (poi-type->osm-tags selected-poi-type)]
                      (when (or (and current-pos-as-center? current-pos) current-center)
-                       (let [results (await (oapi/query overpass-api
-                                                   (if (and current-pos-as-center? current-pos) current-pos current-center)
-                                                   (poi-type->osm-tag selected-poi-type)
-                                                   radius))]
-                         (if results
-                           (reset! pois (map (fn [^Map poi]
-                                               (do (.putIfAbsent poi "poi-type" (fn [] selected-poi-type))
-                                                   poi))
-                                             results));
-                           (log "no pois fetched! map-state was: " new-state))))))))
+                       (reset! pois [])
+                       (doseq [t ["node" "way"]
+                               tags (partition-all 2 osm-tags)]
+                         (swap! query-reporter (constantly (str "fetch:" t tags)))
+                         (let [all-items (await (oapi/query overpass-api t lat lon tags radius))
+                               typed-items (filter #(= t (get % "type")) all-items)
+                               _pois (map #(overpass-item->poi % all-items selected-poi-type)
+                                          typed-items)]
+                           (cond
+                             (= _pois nil)
+                             (swap! query-reporter (constantly (str "FAILED! " t tags)))
+                             (= (count _pois) 0)
+                             (logging/d "no pois fetched! map-state was: " new-state)
+                             :else
+                             (do (logging/d "adding " (count _pois) " pois fetched!")
+                                 (reset! pois (into @pois _pois))))))
+                       (swap! query-reporter (constantly (str "fetched " (count @pois) " pois."))))))))
+
     pois))
 
 (defn route-to-poi [poi]
@@ -63,4 +173,76 @@
     (if (await (canLaunchUrl (Uri.parse "everydoor://")))
       (await (launchUrl geoedit-uri))
       (await (launchUrl (Uri.parse "https://every-door.app/")
-                 .mode LaunchMode.externalApplication)))));)))
+                        .mode LaunchMode.externalApplication)))));)))
+
+(defonce priority-list ["name" "phone" "contact:phone" "website" "email"])
+
+(defn basic-converter [scheme icon]
+  (fn [value]
+    (f/widget
+     (link/Link .uri (Uri.parse (str scheme value))
+                .target link/LinkTarget.blank
+                .builder (f/build [open-link]
+                                  (f/widget
+                                   (m/TextButton.icon .onPressed open-link
+                                                      .label (m/Text value .overflow m/TextOverflow.fade .softWrap true .maxLines 2)
+                                                      .icon (m/Icon icon))))))))
+
+(defonce phone-converter (basic-converter "tel://" m/Icons.call))
+(defonce email-converter (basic-converter "mailto://" m/Icons.email))
+(defonce website-converter (basic-converter "" m/Icons.open_in_browser))
+
+(defonce converters {"phone" phone-converter
+                     "mobile" phone-converter
+                     "contact:phone" phone-converter
+                     "contact:mobile" phone-converter
+                     "contact:email" email-converter
+                     "contact:website" website-converter
+                     "contact:facebook" website-converter
+                     "contact:instagram" website-converter
+                     "email" email-converter
+                     "website" website-converter})
+
+(defn osm-tag-value->widget [type value]
+  (if-let [converter (get converters type)]
+    (converter value) ;; Apply conversion if a function exists
+    (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)))
+
+(defn osm-tag-key->widget [type]
+  (m/Text (replace type #"[:_]" " ")
+          .style (m/TextStyle .fontWeight m/FontWeight.bold)
+          .overflow  m/TextOverflow.fade .softWrap true .maxLines 2))
+
+(defn prioritized-attrs [tags]
+  (let [widgets (into {} tags)
+        prioritized-widgets (filter some? (map (fn [key] (when-let [value (get widgets key)] [key value]))
+                                               priority-list))
+        other-widgets (into {} (filter #(not ((set priority-list) (key %))) widgets))]
+    (concat prioritized-widgets other-widgets)))
+
+(defn poi->attributes-listview [poi]
+  (m/ListView
+   .children (map (fn [[type value]]
+                    (m/Row .mainAxisAlignment m/MainAxisAlignment.start
+                           .children [(f/widget (m/Expanded .flex 3) (osm-tag-key->widget type))
+                                      (f/widget (m/Expanded .flex 5) (osm-tag-value->widget type value))
+                                      (or (osm-tag->icon [type value]) (m/Container))]))
+                  (prioritized-attrs (get poi "tags" {})))))
+
+(defn poi->title-widget [poi]
+  (let [poi-name (get-in poi ["tags"  "name"] (l10n-str "common.no_name"))
+        osm-tags-icons (filter some? (map osm-tag->icon (get poi "tags")))]
+    (f/widget
+     (m/Expanded .flex 2)
+     (m/Row .children (concat
+                       osm-tags-icons
+                       [(m/Text poi-name
+                                .overflow m/TextOverflow.fade
+                                .style (m/TextStyle .fontSize 16 .fontWeight m/FontWeight.bold))])))))
+
+(defn poi->map-location-marker [poi]
+  (let [osm-tags-icons (filter some? (map osm-tag->icon (get poi "tags")))]
+    ;; theres always at least one matching icon for poi tags. otherwise its a bug.
+    (first osm-tags-icons)))
+
+(defn poi->LatLng [poi] (LatLng (get poi "lat") (get poi "lon")))

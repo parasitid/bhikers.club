@@ -11,6 +11,7 @@ settings:
   advanced_group_title: Avanzato
   api_query_timeout: Timeout della query api (in secondi)
   timeout_input_validation_error: Il timeout deve essere un intero valido tale che 2 < timeout < 10
+  debug_mode: Abilita la modalità di debug
   langs:
     en: Inglese
     fr: Francese
@@ -29,13 +30,12 @@ around_me:
   no_permission: Si prega di concedere l'autorizzazione alla posizione
   unknown_location: Posizione attuale sconosciuta...
   poi_types:
-    bhiker: Bhikers
     shelter: Rifugi
     hotel: Hotel
     campsite: Campeggi
     restaurant: Ristoranti
     bottlerefill: Ricariche di bottiglie
-    bakery: Panetterie
+    sandwich: Sandwichs
     bikeshop: Negozi di biciclette
     toilet: Toilette
 about:

@@ -5,13 +5,13 @@
    ["dart:io" :as io]
    ["package:geolocator/geolocator.dart" :as geo]
    ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
-   [club.bhikers.lib.utils :refer [debug-mode? log]]))
-
+   [club.bhikers.lib.app :refer [debug-mode?]]
+   [club.bhikers.lib.logging :as logging]))
 
 ;; per device type location settings
-(defn location-settings []
-  (let [distance-filter (if debug-mode? 0 500) ; Update position every 500m...
-        interval-duration (if debug-mode?
+(defn streams-location-settings []
+  (let [distance-filter (if (debug-mode?) 0 500) ; Update position every 500m...
+        interval-duration (if (debug-mode?)
                             (Duration .seconds 30)
                             (Duration .minutes 5)) ; Update position every 5minutes...
         accuracy geo/LocationAccuracy.low]
@@ -29,51 +29,66 @@
       :else (geo/LocationSettings .accuracy accuracy
                                   .distanceFilter distance-filter))))
 
+(defn force-refresh-location-settings []
+  (let [accuracy geo/LocationAccuracy.high]
+    (cond
+      ;; kIsWeb must be checked first because platform on web is throwing errors
+      foundation/kIsWeb (geo/LocationSettings .accuracy accuracy)
+      (io/Platform.isAndroid) (geo/AndroidSettings .accuracy accuracy
+                                                   .forceLocationManager true) ; use legacy location manager to avoid google play services requirement
+      (io/Platform.isIOS) (geo/AppleSettings .accuracy accuracy
+                                             .pauseLocationUpdatesAutomatically true)
+      :else (geo/LocationSettings .accuracy accuracy))))
+
+(defn force-current-position []
+  (await (-> geo/Geolocator (.getCurrentPosition
+                             .locationSettings (force-refresh-location-settings)))));)
+
 (defn new-position-stream-controller ^#/(async/StreamController geo/Position?) []
   (let [cancel-functions (atom [])
         stream-controller (#/(async/StreamController.broadcast geo/Position?))
-        location-settings* (location-settings)
+        location-settings* (streams-location-settings)
         setup (fn [permission]
                 (cond
                   ;; forbidden close: perm ko, add error & close stream controller
                   (or (== permission geo/LocationPermission.denied)
                       (== permission geo/LocationPermission.deniedForever))
                   (when (not (.-isClosed stream-controller))
-                    (log "permission denied, closing stream controller")
+                    (logging/d "permission denied, closing stream controller")
                     (-> stream-controller .-sink (.addError maploc/PermissionDeniedException))
                     (await (.close stream-controller)))
                   ;; main clause: perm ok: check services and subscribe
                   (or (== permission geo/LocationPermission.whileInUse)
                       (== permission geo/LocationPermission.always))
                   (when (not (.-isClosed stream-controller))
-                    (log "permission granted, setup stream controller")
+                    (logging/d "permission granted, setup stream controller")
                     (let [service-enabled? (await (.isLocationServiceEnabled geo/Geolocator))
                           status-stream-subscription (when (not foundation/kIsWeb)
-                                                       (log "listen to service status strean")
+                                                       (logging/d "listen to service status strean")
                                                        (.listen
                                                         (.getServiceStatusStream geo/Geolocator)
                                                         (fn [status]
                                                           (if (not= status geo/ServiceStatus.enabled)
                                                             (do
-                                                              (log "service status is disabled. error.")
+                                                              (logging/d "service status is disabled. error.")
                                                               (-> stream-controller .-sink (.addError maploc/ServiceDisabledException)))
                                                             (-> stream-controller .-sink (.add nil))))))
                           last-known-position (when (and service-enabled? (not foundation/kIsWeb))
-                                                (log "await for last known position")
+                                                (logging/d "await for last known position")
                                                 (await (-> geo/Geolocator .getLastKnownPosition)))
                           position-subscription (do
-                                                  (log "listening on position stream source")
+                                                  (logging/d "listening on position stream source")
                                                   (->
                                                    geo/Geolocator
                                                    (.getPositionStream .locationSettings location-settings*)
                                                    (.listen
                                                     (fn [position]
                                                       (when (not (.-isClosed stream-controller))
-                                                        (log "new position, add to stream controller sink: " position)
+                                                        (logging/d "new position, add to stream controller sink: " position)
                                                         (-> stream-controller .-sink (.add position)))))))]
                       (when last-known-position
-                            (log "add last-known-position to stream controller sink: " last-known-position)
-                            (-> stream-controller .-sink (.add last-known-position)))
+                        (logging/d "add last-known-position to stream controller sink: " last-known-position)
+                        (-> stream-controller .-sink (.add last-known-position)))
                       (when status-stream-subscription (swap! cancel-functions conj #(.cancel status-stream-subscription)))
                       (when position-subscription (swap! cancel-functions conj #(.cancel position-subscription)))))
 
@@ -82,15 +97,15 @@
     (doto stream-controller
       (.-onCancel!
        (fn []
-         (log "cancelling stream controller listeners and closing!")
+         (logging/d "cancelling stream controller listeners and closing!")
          (await (.wait Future (map #(%) @cancel-functions)))
          (.close stream-controller)))
       (.-onListen!
        (fn []
-         (log "listening on position stream controller!")
+         (logging/d "listening on position stream controller!")
          (try
            (let [permission (await (.checkPermission geo/Geolocator))]
-             (log (str "location permission is " permission))
+             (logging/d (str "location permission is " permission))
              (if (== permission geo/LocationPermission.denied)
                (do
                  (-> stream-controller .-sink (.addError maploc/PermissionDeniedException))
@@ -101,32 +116,29 @@
              (-> stream-controller .-sink (.addError maploc/IncorrectSetupException)))))))
     stream-controller))
 
-
 (defn new-position-bstream ^#/(async/Stream geo/Position?)
   [^#/(async/StreamController geo/Position?) controller]
-  (log "starting position broadcast stream...")
+  (logging/d "starting position broadcast stream...")
   ;(.asBroadcastStream (.defaultPositionStreamSource (maploc/LocationMarkerDataStreamFactory)))
   (.asBroadcastStream (.-stream controller)
                       .onListen (fn [^#/(async/StreamSubscription geo/Position?) controller]
-                                 (log "listening on position b-stream")
-                                 (when (.-isPaused controller)
-                                   (log "resumimg position b-stream controller")
-                                   (.resume controller)
+                                  (logging/d "listening on position b-stream")
+                                  (when (.-isPaused controller)
+                                    (logging/d "resumimg position b-stream controller")
+                                    (.resume controller)
                                   ;; returning nil is important as callback must be void func
-                                  nil))
+                                    nil))
                       .onCancel (fn  [^#/(async/StreamSubscription geo/Position?) controller]
-                                 (log "pausing position b-stream controller")
-                                 (.cancel controller)
+                                  (logging/d "pausing position b-stream controller")
+                                  (.cancel controller)
                                   ;; returning nil is important as callback must be void func
-                                 nil)))
-
-
+                                  nil)))
 
 ;; location marker stream stream helpers / not used
 ;; from maploc, returns a stream of markers from a stream of locations
 (defn ->location-marker-stream
   [^#/(async/Stream geo/Position?) stream]
-  (log "convert position stream to location marker stream")
+  (logging/d "convert position stream to location marker stream")
   (-> stream (.map (fn [^geo/Position? position]
                      (maploc/LocationMarkerPosition
                       .latitude (.-latitude position)
@@ -135,7 +147,7 @@
 
 (defn subscribe-position-stream ^#/(async/StreamSubscription geo/Position?)
   [^#/(async/Stream geo/Position?) stream listener]
-  (log "subscribe to position stream")
+  (logging/d "subscribe to position stream")
   (.listen stream (fn [^geo/Position? position]
                     (listener (.-latitude position)
                               (.-longitude position)))))

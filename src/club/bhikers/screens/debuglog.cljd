@@ -1,0 +1,42 @@
+(ns club.bhikers.screens.debuglog
+  (:require ["package:flutter/material.dart" :as m]
+            ["dart:io" :refer [File]]
+            [club.bhikers.lib.utils :refer [l10n-str]]
+            [club.bhikers.lib.logging :refer [latest-log-file]]
+            [cljd.flutter :as f]))
+
+(defn load-log-file []
+  (let [file (await (latest-log-file))
+        file-exists? (.existsSync file)]
+    (when file-exists? (.readAsLines file))))
+
+(defn debuglog-screen []
+  (f/widget
+   :managed [scroll-controller (m/ScrollController)]
+   (m/Scaffold
+    .appBar (m/AppBar .title (m/Text (l10n-str "debuglog.title"))
+                      .leading (f/widget :get [m/Navigator] (m/IconButton
+                                                             .icon (m/Icon m/Icons.arrow_back)
+                                                             .onPressed #(.pop navigator))))
+    .floatingActionButton (m/FloatingActionButton
+                           .onPressed (fn []
+                                        (when (.hasClients scroll-controller)
+                                          (-> scroll-controller (.jumpTo
+                                                                 (-> scroll-controller .-position .-maxScrollExtent))))
+                                        nil)
+                           .child (m/Icon m/Icons.arrow_downward))
+    .body (f/widget
+           :watch [file-exists? (.exists (await (latest-log-file)))
+                   log-lines (await (load-log-file))]
+           (if (not file-exists?)
+             (m/Text (l10n-str "debuglog.no_log_file"))
+             (m/Container
+              .child (-> m/ListView (.builder
+                                     .controller scroll-controller
+                                     .itemCount (count log-lines)
+                                     .itemBuilder (f/build [i]
+                                                           (f/widget
+                                                            (m/Padding .padding (m/EdgeInsets.all 8.0))
+                                                            (m/Text (nth log-lines i) .style (m/TextStyle .fontSize 12.0))))))))))))
+
+(def wait)

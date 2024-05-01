@@ -6,17 +6,24 @@
             ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart"
              :refer [CancellableNetworkTileProvider]]
             ["package:flutter_map_compass/flutter_map_compass.dart" :refer [MapCompass]]
-            ["package:url_launcher/link.dart" :refer [Link LinkTarget]]
             ["package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart"
              :refer [MarkerClusterLayerWidget MarkerClusterLayerOptions]]
             [club.bhikers.lib.app :refer [supported-poi-types
                                           max-pois-radius
                                           icicommencelaventure
-                                          vertouplage]]
+                                          vertouplage
+                                          debug-mode?]]
             [club.bhikers.lib.map :as map]
             [club.bhikers.screens.common :refer [app-bar drawer]]
-            [club.bhikers.lib.pois :refer [dynamic-map-pois route-to-poi edit-poi]]
-            [club.bhikers.lib.utils :refer [l10n-str log debug-mode?]]
+            [club.bhikers.lib.pois :refer [dynamic-map-pois
+                                           route-to-poi
+                                           edit-poi
+                                           poi->LatLng
+                                           poi->title-widget
+                                           poi->attributes-listview
+                                           poi->map-location-marker]]
+            [club.bhikers.lib.logging :as logging]
+            [club.bhikers.lib.utils :refer [l10n-str]]
             [cljd.flutter :as f]))
 
 ;; Around me ( +/- 10/20km): POIs*
@@ -47,7 +54,7 @@
                      .groupValue selected-poi-type
                      .onChanged (fn [val]
                                   (when (not= val selected-poi-type)
-                                    (log "changed poi type to " val)
+                                    (logging/d "changed poi type to " val)
                                     (swap! map-state assoc :selected-poi-type val)
                                     (.pop navigator)))))
           supported-poi-types)
@@ -57,7 +64,7 @@
          (m/Expanded .flex 2)
          (m/Text (str (l10n-str "common.radius") "\n(" transient-radius "m)")
                  .overflow m/TextOverflow.ellipsis
-                  .softWrap true .maxLines 2))
+                 .softWrap true .maxLines 2))
         (f/widget
          (m/Expanded .flex 4)
          (m/Slider
@@ -70,61 +77,6 @@
 
   ; Filter out blacklisted keys
 
-(defonce priority-list ["name" "phone" "contact:phone" "website" "email"])
-
-(defn basic-converter [scheme icon]
-  (fn [value]
-    (f/widget
-     (Link .uri (Uri.parse (str scheme value))
-           .target LinkTarget.blank
-           .builder (f/build [open-link]
-                             (f/widget
-                              (m/TextButton.icon .onPressed open-link
-                                                 .label (m/Text value .overflow m/TextOverflow.fade .softWrap true .maxLines 2)
-                                                 .icon (m/Icon icon))))))))
-
-(defonce phone-converter (basic-converter "tel://" m/Icons.call))
-(defonce email-converter (basic-converter "mailto://" m/Icons.email))
-(defonce website-converter (basic-converter "" m/Icons.open_in_browser))
-
-(defonce converters {
-   "phone" phone-converter
-   "mobile" phone-converter
-   "contact:phone" phone-converter
-   "contact:mobile" phone-converter
-   "contact:email" email-converter
-   "contact:website" website-converter
-   "contact:facebook" website-converter
-   "contact:instagram" website-converter
-   "email" email-converter
-   "website" website-converter
-   })
-
-(defn tag->widget [[key value]]
-  [key (if-let [converter (get converters key)]
-         (converter value) ;; Apply conversion if a function exists
-         (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2))])
-
-(defn prioritize-attributes [tags]
-  (let [widgets (into {} (map tag->widget tags))
-        prioritized-widgets (map (fn [key] (when-let [value (get widgets key)] [key value]))
-                                 priority-list)
-        other-widgets (into {} (filter #(not ((set priority-list) (key %))) widgets))]
-    (concat
-     (filter some? prioritized-widgets)    ; Only include non-nil prioritized tags
-     other-widgets)))
-
-(defn poi-title-widget [poi]
-  (let [poi-name (get-in poi ["tags" "name"] (l10n-str "common.no_name"))
-        poi-type (get poi "poi-type" false)
-        poi-icon (if poi-type (l10n-str (str "common." poi-type "_emoji")) "")]
-    (f/widget
-     (m/Expanded .flex 2)
-     (m/Text (str poi-icon " " poi-name)
-             .overflow m/TextOverflow.fade
-             .style (m/TextStyle .fontSize 16
-                                 .fontWeight m/FontWeight.bold)))))
-
 ;; modal bottom sheet displaying info about a POI
 (defn around-me-show-poi-info [ctx poi]
   (m/showModalBottomSheet
@@ -136,35 +88,22 @@
               (m/Container .height 300 .padding (m/EdgeInsets.all 16))
               (m/Column .mainAxisSize m/MainAxisSize.min
                         .children [(m/Row
-                                    .children [(poi-title-widget poi)
+                                    .children [(poi->title-widget poi)
                                                (f/widget
                                                 (m/Row
                                                  .mainAxisAlignment m/MainAxisAlignment.end
-                                                 .children [
-                                                            (m/IconButton .icon (m/Icon m/Icons.edit .size 25)
+                                                 .children [(m/IconButton .icon (m/Icon m/Icons.edit .size 25)
                                                                           .tooltip (l10n-str "edit-everydoor")
                                                                           .onPressed #(do (edit-poi poi)
                                                                                           nil))
                                                             (m/IconButton .icon (m/Icon m/Icons.turn_right .size 25)
                                                                           .tooltip (l10n-str "route-to-poi")
                                                                           .onPressed #(do (route-to-poi poi)
-                                                                                          nil))]))
-                                               ])
+                                                                                          nil))]))])
                                    (m/SizedBox .height 16)
                                    (f/widget
                                     m/Expanded
-                                    (m/ListView
-                                     .children (map (fn [[name value]]
-                                                      (m/Row .mainAxisAlignment m/MainAxisAlignment.start
-                                                             .children [(f/widget
-                                                                         (m/Expanded .flex 2)
-                                                                         (m/Text (str (l10n-str name) ": " )
-                                                                                 .style (m/TextStyle .fontWeight m/FontWeight.bold)
-                                                                                 .overflow m/TextOverflow.ellipsis))
-                                                                        (f/widget
-                                                                         (m/Expanded .flex 4)
-                                                                         value)]))
-                                                    (prioritize-attributes (get poi "tags" {})))))])))))
+                                    (poi->attributes-listview poi))])))))
 
 ;; widget for POI markers on map
 ;; - watch map-state current position & selected poi type
@@ -192,14 +131,13 @@
                  (m/Center .child
                            (m/Text (str (count markers))
                                    .style (m/TextStyle .color m/Colors.white)))))
-     .markers (map #(fmap/Marker .point (LatLng (get % "lat") (get % "lon"))
+     .markers (map #(fmap/Marker .point (poi->LatLng %)
                                  .height 40
                                  .width 40
                                  .child (m/GestureDetector
                                          .onTap (fn [] (around-me-show-poi-info ctx %))
-                                         .child (m/Icon m/Icons.location_pin .size 40)))
+                                         .child (poi->map-location-marker %)))
                    pois)))))
-
 
 ;; Setup around me main screen with Flutter Map,
 ;; centered on device's current position
@@ -250,7 +188,7 @@
     (fmap/FlutterMap
      .options (fmap/MapOptions
                .initialZoom 14
-               .initialCenter (if debug-mode? vertouplage icicommencelaventure)
+               .initialCenter (if (debug-mode?) vertouplage icicommencelaventure)
                .minZoom 0
                .maxZoom 18
                .onLongPress (fn [_ ^LatLng point]
@@ -273,7 +211,8 @@
        .alignPositionOnUpdate align-position-on-update
        .alignDirectionOnUpdate maploc/AlignOnUpdate.never)
       (map/control-buttons :alignment m/Alignment.bottomRight
-                           :onMyLocation (map/align-on-current-pos-callback dms))
+                           :onMyLocation (map/align-on-current-pos-callback dms false)
+                           :onMyLocationSecondary (map/align-on-current-pos-callback dms true))
       (fmap/Scalebar
        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
        .alignment m/Alignment.bottomLeft

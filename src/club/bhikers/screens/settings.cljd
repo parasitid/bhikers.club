@@ -1,19 +1,20 @@
 (ns club.bhikers.screens.settings
   (:require ["package:flutter/material.dart" :as m]
-           ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
-           ["package:easy_localization/easy_localization.dart" :as l10n]
-           [club.bhikers.screens.common :refer [app-bar drawer]]
-           [club.bhikers.lib.utils :refer [l10n-str
-                                           log
-                                           str->int]]
-           [club.bhikers.lib.app :refer [supported-poi-types selected-poi-type
-                                         supported-locales default-locale
-                                         max-pois-radius
-                                         min-pois-radius
-                                         pois-radius
-                                         api-query-timeout
-                                         feat-fall-detector?]]
-           [cljd.flutter :as f]))
+            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
+            ["package:easy_localization/easy_localization.dart" :as l10n]
+            [club.bhikers.screens.common :refer [app-bar drawer]]
+            [club.bhikers.lib.utils :refer [l10n-str
+                                            str->int]]
+            [club.bhikers.lib.logging :as logging]
+            [club.bhikers.lib.app :refer [supported-poi-types selected-poi-type
+                                          supported-locales default-locale
+                                          force-debug-mode?
+                                          max-pois-radius
+                                          min-pois-radius
+                                          pois-radius
+                                          api-query-timeout
+                                          feat-fall-detector?]]
+            [cljd.flutter :as f]))
 
 ;; Setup settings screen
 ;; setup various settings options
@@ -33,7 +34,7 @@
               .children
               [(settings/SliderSettingsTile
                 .leading (m/Icon m/Icons.adjust)
-                .settingKey "/general/pois_radius"
+                .settingKey "/general/pois-radius"
                 .title (l10n-str "common.radius")
                 .defaultValue 1000
                 .min min-pois-radius
@@ -41,24 +42,24 @@
                 .onChange #(swap! pois-radius (constantly %))
                 .step 500)
                (#/(settings/DropDownSettingsTile String)
-                  .leading (m/Icon m/Icons.location_searching)
-                  .settingKey "/general/default_poi_type"
-                  .title  (l10n-str "settings.default_poi_type")
-                  .values (into {} (map (fn [poi] [poi (l10n-str (str "around_me.pois." poi))])
-                                        supported-poi-types))
-                  .selected @selected-poi-type
-                  .onChange #(swap! selected-poi-type (constantly %)))
+                .leading (m/Icon m/Icons.location_searching)
+                .settingKey "/general/default-poi-type"
+                .title  (l10n-str "settings.default_poi_type")
+                .values (into {} (map (fn [poi] [poi (l10n-str (str "around_me.pois." poi))])
+                                      supported-poi-types))
+                .selected @selected-poi-type
+                .onChange #(swap! selected-poi-type (constantly %)))
                (#/(settings/DropDownSettingsTile String)
-                  .leading (m/Icon m/Icons.language)
-                  .settingKey "/general/language"
-                  .title  (l10n-str "settings.language")
-                  .values (into {} (map (fn [lang] [lang (l10n-str (str "settings.langs." lang))])
-                                        supported-locales))
-                  .selected default-locale
-                  .onChange #(do (-> ctx
-                                     l10n/BuildContextEasyLocalizationExtension
-                                     (.setLocale (m/Locale %)))
-                                 nil))])]
+                .leading (m/Icon m/Icons.language)
+                .settingKey "/general/language"
+                .title  (l10n-str "settings.language")
+                .values (into {} (map (fn [lang] [lang (l10n-str (str "settings.langs." lang))])
+                                      supported-locales))
+                .selected default-locale
+                .onChange #(do (-> ctx
+                                   l10n/BuildContextEasyLocalizationExtension
+                                   (.setLocale (m/Locale %)))
+                               nil))])]
             (if (not feat-fall-detector?) []
                 [(settings/SettingsGroup
                   .title  (l10n-str "settings.fall_detector_group_title")
@@ -67,24 +68,29 @@
                     .leading (m/Icon m/Icons.crisis_alert)
                     .settingKey "/fall-detector/alert-mode"
                     .title (l10n-str "settings.alert_mode")
-                    .onChange #(log "switched fall-detector-mode to " %)
+                    .onChange #(logging/d "switched fall-detector-mode to " %)
                     .childrenIfEnabled
                     [(settings/TextInputSettingsTile
                       .settingKey "/fall-detector/emergency-contact-phone-number"
                       .title (l10n-str "settings.emerengcy_contact_phone_number")
                       .keyboardType m/TextInputType.phone
-                      .validator #(do (log "phone number " %)
+                      .validator #(do (logging/d "phone number " %)
                                       nil)
                       .initialValue  "+33000000000")])])])
             [(settings/SettingsGroup
               .title  (l10n-str "settings.advanced_group_title")
               .children
               [(settings/TextInputSettingsTile
-                .settingKey "/advanced/api_query_timeout"
+                .settingKey "/advanced/api-query-timeout"
                 .title (l10n-str "settings.api_query_timeout")
                 .keyboardType m/TextInputType.number
                 .onChange #(let [timeout (str->int % 2 10)]
                              (when timeout (swap! api-query-timeout (constantly timeout))))
                 .validator #(when (not (str->int % 2 10))
                               (l10n-str "settings.timeout_input_validation_error"))
-                .initialValue (str @api-query-timeout))])])))))
+                .initialValue (str @api-query-timeout))
+               (settings/SwitchSettingsTile
+                .leading (m/Icon m/Icons.bug_report)
+                .settingKey "/advanced/debug-mode?"
+                .title (l10n-str "settings.debug_mode")
+                .onChange #(swap! force-debug-mode? (constantly %)))])])))))

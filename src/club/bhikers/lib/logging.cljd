@@ -1,0 +1,44 @@
+(ns club.bhikers.lib.logging
+  (:require
+   ["package:flutter/foundation.dart" :refer [debugPrint]]
+   ["package:path/path.dart" :refer [basename]]
+   ["dart:io" :refer [File]]
+   ["package:logger/logger.dart" :refer
+    [Logger AdvancedFileOutput ConsoleOutput MultiOutput
+     DateTimeFormat SimplePrinter Level]]
+
+   [club.bhikers.lib.app :refer
+    [force-debug-mode? debug-mode? log-file-dir]]))
+
+(defonce logger (atom nil))
+
+(defn d [& args]
+  (let [msg (apply str (into ["[club.bhikers] "] args))]
+    (debugPrint msg)
+    (when (not @logger)
+      (.d ^Logger @logger msg))))
+
+(defn ^#/(Future File) latest-log-file []
+  (first (filter  #(= "latest.log" (basename (.-path %)))
+                  (.listSync (await (log-file-dir))))))
+
+(defn init! []
+  (debugPrint "init logging system")
+  (when (not @logger)
+    (add-watch force-debug-mode? :reinit (fn [_ _ _ _]
+                                           (debugPrint "reinit logging system")
+                                           (init!))))
+
+  (let [log-dir (await (log-file-dir))
+        _ (await (.create log-dir .recursive true))
+        file-output (AdvancedFileOutput .path (.-path log-dir))
+        new-logger (Logger
+                    .level (if (debug-mode?) Level.debug Level.info)
+                    .output (if (debug-mode?)
+                              (MultiOutput [file-output (ConsoleOutput)])
+                              file-output)
+                    .printer (SimplePrinter .colors true .printTime true))]
+    (debugPrint (str "swap logging system (see file in " (.-path log-dir) ")"))
+    (swap! logger (constantly new-logger))))
+
+(defn close! [] (await (.close ^Logger @logger)))

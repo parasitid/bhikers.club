@@ -11,6 +11,18 @@ waiting for geolocator currentpostion seems to be broken at least on some device
 rely only on geolocator lastknownposition + position stream as a workaround
 
 
+** DONE Map position seems to be still unreliable
+the map correctly fetches the last position. yet it seems that it's not updated.
+if another gps app is opened (such as OSMAnd) which refresh device gps position, then bhikersclub app position gets updated...
+this maybe consistent with In the meantime, geolocator low locationaccuracy
+
+-> fix is: add a double tap behavior on mylocation button to force refresh with high accuracy
+
+
+
+** TODO hard to debug app without access to logs when hiking
+should be able to access logs in a file
+
 * V0 App features
 ** global ui
 *** DONE setup icon
@@ -41,6 +53,7 @@ rely only on geolocator lastknownposition + position stream as a workaround
 *** TODO show attribution widget for osm+overpass
 *** TODO display bike_friends tags with special color and priority
 *** TODO tag POI as bike_friend (setup user management first)
+*** DONE on my location double tap, force gps to refresh location
 ** Settings
 ** About
 *** TODO make credits page

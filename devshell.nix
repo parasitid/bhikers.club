@@ -32,6 +32,10 @@ devshell.mkShell {
       name = "JAVA_HOME";
       value = jdk.home;
     }
+    {
+      name = "FLUTTER_HOME";
+      value = flutter;
+    }
   ];
   packages = [
     emacs
@@ -41,6 +45,7 @@ devshell.mkShell {
     jdk
     flutter
     clojure
+    cljfmt
     google-chrome
     fastlane
     jekyll
