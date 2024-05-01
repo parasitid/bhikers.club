@@ -14,16 +14,6 @@
             [club.bhikers.lib.notifications :refer [debug-notif]]
             [cljd.flutter :as f]))
 
-;; Around me ( +/- 10/20km): POIs*
-;; Enhance GPX: upload gpx and add POIs*
-;; Fall Detector Alert: use accelerometer to detect fall or no movement
-;; Settings: avatar, sms/signal/telegram accounts to send alerts
-;;
-;; *POIs: bhikers, bakeries+resto, hotels+campings+spots, foutains for bottle refills
-
-;; Setup default values
-
-
 ;; Setup Theme of the material app
 (def theme
   (let [color-scheme (m/ColorScheme.fromSeed .seedColor m/Colors.blue

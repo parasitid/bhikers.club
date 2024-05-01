@@ -20,34 +20,48 @@ rely only on geolocator lastknownposition + position stream as a workaround
 *** DONE better end drawer for filters
 *** DONE add compass rotation icon on map
 *** DONE add popup on poi markers with info
-*** TODO share poi with nav app (waze/geovelo/komoot/...)
 *** DONE add public WC POI
-*** TODO add recommandation on POI (setup api backend)
-*** TODO add cache for tiles
 *** DONE add zoom buttons
 *** DONE long tap to recenter map on custom position
 *** DONE dont reset zoom on my location recenter
-*** TODO show "location currently unknown" overlay message
-*** TODO allow custom overpass tag filter
 ** Settings
 *** DONE setup around me defaults in settings
+** ** tech/debug
+*** DONE add notif messages for debug instead and/or logs in a widget
+** DONE choose license
+
+
+* V0.1 App features
+** global ui
+** Around me
+*** TODO share poi with nav app (waze/geovelo/komoot/...)
+*** TODO add recommandation on POI (setup api backend)
+*** TODO add cache for tiles
+*** TODO show "location currently unknown" overlay message
+*** TODO allow custom overpass tag filter
+*** TODO show attribution widget for osm+overpass
+** Settings
 ** About
 *** TODO make credits page
 *** TODO insert frugal app manifesto
 *** TODO insert bhikers club good fellow
+*** TODO add doc on how to login and create token
 ** user management
-*** TODO associate id with device in backend api
+*** TODO associate token with device and display user info
 *** TODO create web view to osm account creation/login page
+*** TODO Display user info
 ** tech/debug
-*** DONE add notif messages for debug instead and/or logs in a widget
-* App release
 ** CICD
 *** TODO automate build, release and publish android app on github
 *** TODO automate build, release and publish android app on ?store?
 *** TODO automate build, release and publish ios app on ?store?
-** DONE choose license
 
 * Development
+
+
+* Ideas
+
+** Use IPFS (https://github.com/jxoesneon/IPFS/tree/master ?) to send alerts and notifs between users
 
 * Others
 ** Frugal App Manifesto
