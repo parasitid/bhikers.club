@@ -5,6 +5,7 @@
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
 (defonce default-locale "en")
 
+(defonce max-pois-radius 10000);; 20km
 (defonce supported-poi-types ["bhikers"
                               "shelters"
                               "hotels"

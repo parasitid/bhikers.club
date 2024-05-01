@@ -23,6 +23,8 @@
                          :current-pos nil
                          :current-center nil
                          :current-pos-as-center? true
+                         :transient-radius 1000
+                         :radius 1000
                          :align-position-on-update maploc/AlignOnUpdate.always})]
     (when debug-mode?
       (add-watch map-state :map-message

@@ -37,7 +37,8 @@ about:
   screen_title: Acerca de
   description: Bhikers Club por ParaSitid
 common:
-  close: cerrar
+  close: Cerrar
+  radius: Radio
   permission-denied: permiso denegado permanentemente para
 notifications:
   title: Notificaciones

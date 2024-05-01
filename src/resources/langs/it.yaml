@@ -37,7 +37,8 @@ about:
   screen_title: Informazioni
   description: Bhikers Club di ParaSitid
 common:
-  close: chiudi
+  close: Chiudi
+  radius: Raggio
   permission-denied: autorizzazione permanentemente negata per
 notifications:
   title: Notifiche

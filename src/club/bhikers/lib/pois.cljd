@@ -57,14 +57,14 @@
        (log "elements fetched from api: " elements)
        elements))))
 
-(defn dynamic-map-pois [map-state overpass-api & {:keys [radius] :or {radius 1000}}]
+(defn dynamic-map-pois [map-state overpass-api]
  (let [pois (atom [])]
    (add-watch map-state :refresh-pois
          (fn [_ _ old-state new-state]
-           (when (not= (select-keys old-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?])
-                       (select-keys new-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?]))
+           (when (not= (select-keys old-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?])
+                       (select-keys new-state [:radius :selected-poi-type :current-pos :current-center :current-pos-as-center?]))
              (debug-notif "refreshing pois!")
-             (let [{:keys [selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
+             (let [{:keys [radius selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
                (when (or (and current-pos-as-center? current-pos) current-center)
                  (let [results (await (overpass-query overpass-api
                                                       (if (and current-pos-as-center? current-pos) current-pos current-center)
