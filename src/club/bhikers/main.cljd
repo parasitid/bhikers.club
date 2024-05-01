@@ -1,0 +1,183 @@
+(ns club.bhikers.main
+  "Bhikers Club App by ParaSitid"
+  (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter_map/flutter_map.dart" :as map]
+            ["package:latlong2/latlong.dart" :as ll]
+            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
+            ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
+            ["dart:async" :as dart-async]
+            [cljd.flutter :as f]))
+
+;; Around me ( +/- 10/20km): POIs*
+;; Enhance GPX: upload gpx and add POIs*
+;; Fall Detector Alert: use accelerometer to detect fall or no movement
+;; Settings: avatar, sms/signal/telegram accounts to send alerts
+;;
+;; *POIs: bhikers, boulangeries+resto, hotels+campings+spots, points d'eau
+
+(defonce map-state {:align-position-on-update maploc/AlignOnUpdate.always
+                    :align-position-stream-controller (dart-async/StreamController)})
+
+(defn drawer []
+  (f/widget
+   :get [m/Navigator]
+   :let [drawer-routes [["/around-me"
+                         "Around Me"
+                         m/Icons.location_pin]
+                        ["/enhance-gpx"
+                         "Enhance GPX"
+                         m/Icons.hotel_class_outlined]
+                        ["/fall-detector"
+                         "Fall detector"
+                         m/Icons.crisis_alert]
+                        ["/settings"
+                         "Settings"
+                         m/Icons.settings]
+                        ["/about"
+                         "About"
+                         m/Icons.info]]]
+   m/Drawer
+   (m/ListView
+    .padding (m/EdgeInsets.all 20)
+    .children (into [(m/UserAccountsDrawerHeader
+                      .accountName (m/Text "John Doe")
+                      .accountEmail (m/Text "johndoe@example.com")
+                      .currentAccountPicture (m/CircleAvatar .child (m/Text "JD")))]
+                    (map (fn [[route title icon]]
+                           (m/ListTile
+                            .leading (m/Icon icon)
+                            .title (m/Text title)
+                            .onTap
+                            (fn []
+                              (.pop navigator)
+                              (.pushNamed navigator route)
+                              nil)))
+                         drawer-routes)))))
+
+(defn app-bar []
+  (m/AppBar .title (m/Text "Bhikers Club")))
+
+(defn around-me-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body
+   (f/widget
+    :managed [align-position-stream-controller (#/(dart-async/StreamController double?))
+              :dispose .close]
+    :watch [align-position-on-update (atom maploc/AlignOnUpdate.always) :as *align-position-on-update]
+    (map/FlutterMap
+     .options (map/MapOptions
+               .initialZoom 12
+               .minZoom 0
+               .maxZoom 16
+               .onPositionChanged (fn [camera hasGesture]
+                                    (when (and hasGesture
+                                               (not= align-position-on-update maploc/AlignOnUpdate.never))
+                                      (reset! *align-position-on-update maploc/AlignOnUpdate.never))))
+
+     .children
+     [(map/TileLayer
+       .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+       .userAgentPackageName "club.bhikers"
+       .maxZoom 19)
+      (maploc/CurrentLocationLayer
+       .alignPositionStream (.-stream align-position-stream-controller)
+       .alignPositionOnUpdate align-position-on-update)
+      (m/Align
+       .alignment m/Alignment.bottomRight
+       .child (m/Padding .padding (m/EdgeInsets.all 20.0)
+                         .child (m/FloatingActionButton
+                                 .onPressed (fn [] (do
+                                                     (reset! *align-position-on-update maploc/AlignOnUpdate.never)
+                                                     (.add align-position-stream-controller 12)))
+                                 .child (m/Icon m/Icons.my_location .color m/Colors.white))))]))))
+
+
+
+(defn enhance-gpx-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body (f/widget
+          m/Center
+          (m/Text "Enhance GPX trace with the POIs all along!" .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+
+(defn fall-detector-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body (f/widget
+          m/Center
+          (m/Text "Send alert to contacts if fall detected using accelerometer!" .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+
+(defn settings-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body (f/widget
+          m/Container
+          (settings/SettingsScreen
+           .title  "Settings"
+           .children
+           [(settings/SettingsGroup
+             .title  "Common"
+             .children
+             [(settings/SimpleDropDownSettingsTile
+               .leading (m/Icon m/Icons.language)
+               .settingKey "/common/language"
+               .title  "Language"
+               .values [ "English", "Français"]
+               .selected "Français"
+               .onChange #(m/debugPrint (str "selected lang " %)))])
+            (settings/SettingsGroup
+             .title  "Fall Detector"
+             .children
+             [(settings/SwitchSettingsTile
+               .leading (m/Icon m/Icons.crisis_alert)
+               .settingKey "/fall-detector/alert-mode"
+               .title  "Alert mode"
+               .onChange #(m/debugPrint (str "switched fall-detector-mode to " %))
+               .childrenIfEnabled
+               [(settings/TextInputSettingsTile
+                 .settingKey "/fall-detector/emergency-contact-phone-number"
+                 .title  "Emerengcy Contact Phone Number"
+                 .validator #(do (m/debugPrint (str "phone number " %))
+                                 nil)
+                 .initialValue  "+33000000000")])])]))))
+
+(defn about-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body (f/widget
+          m/Center
+          (m/Text "Bhikers Club by ParaSitid" .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+
+(def theme
+  (m/ThemeData
+    .colorSchemeSeed m/Colors.blue
+    .useMaterial3 true
+    .textTheme (m/TextTheme
+                 .displayLarge (m/TextStyle
+                                 .fontWeight m/FontWeight.w700
+                                 .fontSize 24
+                                 .color m/Colors.black))))
+(def routes
+  {"/around-me" (around-me-screen)
+   "/enhance-gpx" (enhance-gpx-screen)
+   "/fall-detector" (fall-detector-screen)
+   "/settings" (settings-screen)
+   "/about" (about-screen)})
+
+(defn main []
+  (do
+    (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+    (f/run
+      (m/MaterialApp
+       .initialRoute "/around-me"
+       .theme theme
+       .routes (into {}
+                     (keep (fn [[k v]]
+                             {k (fn ^m/Widget k [_] v)}))
+                     routes)))))
