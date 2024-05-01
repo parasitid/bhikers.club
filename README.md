@@ -1,4 +1,4 @@
-# cljd_bhikers
+# bhikers club app
 
 A new Flutter project.
 
