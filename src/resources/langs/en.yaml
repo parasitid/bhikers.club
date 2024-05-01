@@ -5,8 +5,12 @@ settings:
   alert_mode: Alert mode
   fall_detector_group_title: Fall detector
   language: Language
+  default_poi_type: Default POI Type
   general_group_title: General
   screen_title: Settings
+  advanced_group_title: Advanced
+  api_query_timeout: API query timeout (in seconds)
+  timeout_input_validation_error: Timeout must be a valid integer 2 < timeout < 10
   langs:
     en: English
     fr: French
@@ -23,6 +27,7 @@ around_me:
   screen_title: Around me
   description: POIs around my current GPS position
   no_permission: Please grant Location permission
+  unknown_location: Current location unknown...
   poi_types:
     bhikers: Bhikers
     shelters: Shelters
@@ -59,6 +64,6 @@ common:
   bakery_emoji: 🥪
   bikeshop_emoji: 🔧
   toilets_emoji: 🚽
-  radius: Radius
+  radius: Search radius
 notifications:
   title: Notifications

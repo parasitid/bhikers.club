@@ -6,7 +6,11 @@ settings:
   fall_detector_group_title: Detector de caídas
   language: Idioma
   general_group_title: General
+  default_poi_type: Tipo de POI predeterminado
   screen_title: Configuración
+  advanced_group_title: Avanzado
+  api_query_timeout: Tiempo de espera de consulta de api (en segundos)
+  timeout_input_validation_error: El tiempo de espera debe ser un entero válido tal que 2 < tiempo de espera < 10
   langs:
     en: Inglés
     fr: Francés
@@ -23,6 +27,7 @@ around_me:
   screen_title: Alrededor de mí
   description: Puntos de interés alrededor de mi posición GPS actual
   no_permission: Por favor, conceda permiso de ubicación
+  unknown_location: Ubicación actual desconocida...
   poi_types:
     bhikers: Bhikers
     shelters: Refugios
@@ -38,7 +43,7 @@ about:
   description: Bhikers Club por ParaSitid
 common:
   close: Cerrar
-  radius: Radio
+  radius: Radio de búsqueda
   permission-denied: permiso denegado permanentemente para
 notifications:
   title: Notificaciones

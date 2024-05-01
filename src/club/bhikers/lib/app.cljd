@@ -1,10 +1,10 @@
 (ns club.bhikers.lib.app
-    (:require ["package:latlong2/latlong.dart" :as ll]))
+  (:require ["package:flutter_settings_screens/flutter_settings_screens.dart" :refer [Settings]]
+            ["package:latlong2/latlong.dart" :as ll]))
 
 (defonce force-debug-mode (atom true))
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
 (defonce default-locale "en")
-
 (defonce max-pois-radius 10000);; 20km
 (defonce min-pois-radius 500);; 20km
 (defonce supported-poi-types ["bhikers"
@@ -18,7 +18,18 @@
                               "toilets"])
 
 
-(defonce default-poi-type "shelters")
+(defonce default-poi-type "bakeries")
+(defonce selected-poi-type (atom default-poi-type))
 
 (defonce icicommencelaventure (ll/LatLng 48.51479 2.65053))
 (defonce vertouplage (ll/LatLng 47.1612 -1.4778))
+
+(defonce api-query-timeout
+  (atom (int/tryParse (#/(.getValue String) Settings "/advanced/api_query_timeout"
+                         .defaultValue "5"))))
+(defonce pois-radius
+  (atom (#/(.getValue double) Settings "/general/pois_radius"
+           .defaultValue 1000)))
+
+(defonce feat-fall-detector? false)
+(defonce feat-enhance-gpx? false)

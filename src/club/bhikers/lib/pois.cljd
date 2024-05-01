@@ -3,6 +3,7 @@
    ["package:dio/dio.dart" :as dio]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
    [club.bhikers.lib.notifications :refer [debug-notif]]
+   [club.bhikers.lib.app :refer [api-query-timeout]]
    [club.bhikers.lib.utils :refer [log uuid-v5]]))
 
 (defonce poi-types->osm-tags {"shelters" "amenity=shelter"
@@ -20,8 +21,8 @@
   (log "create dio instance for url " base-url)
   (let [api (dio/Dio
              (dio/BaseOptions .baseUrl base-url
-                              .connectTimeout (Duration .seconds 5)
-                              .receiveTimeout (Duration .seconds 5)))]
+                              .connectTimeout (Duration .seconds @api-query-timeout)
+                              .receiveTimeout (Duration .seconds @api-query-timeout)))]
     (doto (.-interceptors api)
       (.add (cache/DioCacheInterceptor
              .options (cache/CacheOptions
@@ -51,6 +52,7 @@
                    (await (.get ^dio/Dio api query))
                    (catch dio/DioException e
                      (do (log "Exception! " e)
+                         (debug-notif "overpass-api.de is currently having issues...")
                          nil)))]
     (when response
       (let [{{elements "elements"} .-data} ^dio/Response response]

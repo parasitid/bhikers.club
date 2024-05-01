@@ -6,7 +6,11 @@ settings:
   fall_detector_group_title: Sturzerkennung
   language: Sprache
   general_group_title: Allgemein
+  default_poi_type: Standard-POI-Typ
   screen_title: Einstellungen
+  advanced_group_title: Fortgeschritten
+  api_query_timeout: API-Abfrage-Timeout (in Sekunden)
+  timeout_input_validation_error: Das Timeout muss eine gültige Ganzzahl sein, wobei 2 < Timeout < 10
   langs:
     en: Englisch
     fr: Französisch
@@ -23,6 +27,7 @@ around_me:
   screen_title: In meiner Nähe
   description: POIs um meine aktuelle GPS-Position
   no_permission: Bitte erteilen Sie die Standortberechtigung
+  unknown_location: Aktueller Standort unbekannt...
   poi_types:
     bhikers: Bhikers
     shelters: Unterkünfte
@@ -38,7 +43,7 @@ about:
   description: Bhikers Club von ParaSitid
 common:
   close: Schließen
-  radius: Radius
+  radius: Suchradius
   permission-denied: Berechtigung dauerhaft verweigert für
 notifications:
   title: Benachrichtigungen

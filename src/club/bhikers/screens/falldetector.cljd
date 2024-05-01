@@ -1,5 +1,4 @@
 (ns club.bhikers.screens.falldetector
-  "Bhikers Club App by ParaSitid"
   (:require ["package:flutter/material.dart" :as m]
            [club.bhikers.screens.common :refer [app-bar drawer]]
            [club.bhikers.lib.utils :refer [l10n-str]]
