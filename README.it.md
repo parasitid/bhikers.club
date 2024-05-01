@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./src/resources/logo.png" alt="Logo del Bhikers Club">
+  <img src="./src/resources/logo.png" alt="Logo del Bhikers Club" width="200" height="200">
 </p>
 <p align="center">
-  <img src="./src/resources/icons/icon.png" alt="Bhikers Club icon">
+  <img src="./src/resources/icons/icon.png" alt="Bhikers Club icon" width="80" height="80" style="border-radius: 0;">
 </p>
 
 # 🇮🇹 bhikers club app – Il tuo compagno essenziale per il ciclismo
