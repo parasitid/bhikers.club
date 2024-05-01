@@ -1,0 +1,27 @@
+app:
+  title: Bhikers Club
+settings:
+  emerengcy_contact_phone_number: Telefonnummer des Notfallkontakts
+  alert_mode: Alarmmodus
+  fall_detector_group_title: Sturzerkennung
+  language: Sprache
+  general_group_title: Allgemein
+  screen_title: Einstellungen
+  langs:
+    en: Englisch
+    fr: Französisch
+    de: Deutsch
+    it: Italienisch
+    es: Spanisch
+fall_detector:
+  screen_title: Sturzerkennung
+  description: Senden Sie eine Benachrichtigung an Kontakte, wenn ein Sturz mit dem Beschleunigungsmesser erkannt wird!
+enhance_gpx:
+  screen_title: GPX verbessern
+  description: Verbessern Sie die GPX-Spur mit den POIs entlang der Strecke!
+around_me:
+  screen_title: In meiner Nähe
+  description: POIs um meine aktuelle GPS-Position
+about:
+  screen_title: Über
+  description: Bhikers Club von ParaSitid

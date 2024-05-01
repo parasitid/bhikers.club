@@ -5,8 +5,14 @@ settings:
   alert_mode: Alert mode
   fall_detector_group_title: Fall detector
   language: Language
-  common_group_title: Common
+  general_group_title: General
   screen_title: Settings
+  langs:
+    en: English
+    fr: French
+    de: German
+    it: Italian
+    es: Espagnol
 fall_detector:
   screen_title: Fall Detector
   description: Send alert to contacts if fall detected using accelerometer!

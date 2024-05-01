@@ -1,0 +1,27 @@
+app:
+  title: Bhikers Club
+settings:
+  emerengcy_contact_phone_number: Numéro de téléphone du contact d'urgence
+  alert_mode: Mode d'alerte
+  fall_detector_group_title: Détecteur de chute
+  language: Langue
+  general_group_title: Général
+  screen_title: Paramètres
+  langs:
+    en: Anglais
+    fr: Français
+    de: Allemand
+    it: Italien
+    es: Espagnol
+fall_detector:
+  screen_title: Détecteur de chute
+  description: Envoyez une alerte aux contacts si une chute est détectée à l'aide de l'accéléromètre !
+enhance_gpx:
+  screen_title: Améliorer GPX
+  description: Améliorez la trace GPX avec les points d'intérêt tout le long !
+around_me:
+  screen_title: Autour de moi
+  description: Points d'intérêt autour de ma position GPS actuelle
+about:
+  screen_title: À propos
+  description: Bhikers Club par ParaSitid
