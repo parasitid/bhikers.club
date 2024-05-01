@@ -21,18 +21,10 @@ jobs:
       - name: This is where the magic is happening
         shell: bash
         run: |
-          BUILD_NUMBER=${{ github.run_number }}
-          BUILD_NAME="${{ github.ref_name }}"
-          BUILD_ID="${BUILD_NAME}+${BUILD_NUMBER}"
           set -x
           nix develop --command flutter doctor
           # always clean & compile to enforce generated dart code is sane
-          nix develop --command clj -M:cljd clean
-          nix develop --command clj -M:cljd compile
-          nix develop --command flutter build apk \
-             --release --no-pub --suppress-analytics \
-             --build-number "${BUILD_NUMBER}" \
-             --build-name "${BUILD_NAME}"
+          nix develop --command make clean compile apk-release BUILD_NUMBER="${{ github.run_number }}" BUILD_NAME="${{ github.ref_name }}"
           cp build/app/outputs/flutter-apk/app-release.apk \
             club.bhikers.bhikersclub_${BUILD_ID}.apk
 

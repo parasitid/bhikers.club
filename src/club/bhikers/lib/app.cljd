@@ -1,10 +1,13 @@
 (ns club.bhikers.lib.app
   (:require ["package:flutter_settings_screens/flutter_settings_screens.dart" :refer [Settings]]
             ["package:path_provider/path_provider.dart" :refer [getApplicationDocumentsDirectory]]
-            ["package:flutter/foundation.dart" :refer [kDebugMode]]
+            ; as app pkg is used by logging, we cant use logging/d
+            ["package:flutter/foundation.dart" :refer [kDebugMode debugPrint]]
             ["package:latlong2/latlong.dart" :as ll]
             ["package:geolocator/geolocator.dart" :as geo]
-            ["package:flutter/foundation.dart" :refer [debugPrint]]
+            ["package:shared_preferences/shared_preferences.dart" :refer [SharedPreferences]]
+            ["package:flutter/material.dart" :as m]
+            ["package:package_info_plus/package_info_plus.dart" :refer [PackageInfo]]
             ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
             ["package:easy_localization/easy_localization.dart" :as l10n]
             ["dart:io" :refer [Directory]]
@@ -44,27 +47,37 @@
 (defn debug-mode? [] (or @force-debug-mode? kDebugMode))
 
 (defonce force-debug-mode? (atom false))
+(defonce app-info (atom nil))
 
-(defn init! []
+(defn init! [& {:keys [mock-mode?] :or {mock-mode? false?}}]
+  (when mock-mode? (-> SharedPreferences (.setMockInitialValues {})))
+
+  (m/WidgetsFlutterBinding.ensureInitialized)
   (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
   (await (l10n/EasyLocalization.ensureInitialized))
 
-
-  (let [_duration-setting (#/(.getValue int) Settings "/advanced-location/refresh-location-interval-duration"
+  (let [pkg-info (if mock-mode?
+                   (PackageInfo .appName "test" .packageName "test" .version "1.0.0" .buildNumber "42" .buildSignature "")
+                   (await (.fromPlatform PackageInfo)))
+        _duration-setting (#/(.getValue int) Settings "/advanced-location/refresh-location-interval-duration"
                              .defaultValue 30)
         _accuracy-setting (#/(.getValue String) Settings "/advanced-location/refresh-location-accuracy"
                              .defaultValue "low")
         _distance-setting (#/(.getValue String) Settings "/advanced-location/refresh-location-distance-filter"
-                                      .defaultValue "500")]
-   (swap! refresh-location-distance-filter (constantly (int/tryParse _distance-setting)))
-   (swap! refresh-location-interval-duration (constantly (Duration .seconds _duration-setting)))
-   (swap! refresh-location-accuracy (constantly (str->location-accuracy _accuracy-setting))))
-
-  (swap! pois-radius (constantly (#/(.getValue double) Settings "/general/pois-radius"
-                                                       .defaultValue 1000)))
-  (swap! api-query-timeout (constantly (int/tryParse (#/(.getValue String) Settings "/advanced/api-query-timeout"
-                                                                           .defaultValue "5"))))
-  (swap! force-debug-mode? (constantly (#/(.getValue bool) Settings "/advanced/debug-mode?"
-                                                           .defaultValue false)))
-  (swap! selected-poi-type (constantly (#/(.getValue String) Settings "/general/default-poi-type"
-                                                             .defaultValue default-poi-type))))
+                             .defaultValue "500")
+        _radius-setting (#/(.getValue double) Settings "/general/pois-radius" .defaultValue 1000)
+        _query-timeout-setting (#/(.getValue String) Settings "/advanced/api-query-timeout" .defaultValue "5")
+        _debug-setting (#/(.getValue bool) Settings "/advanced/debug-mode?" .defaultValue false)
+        _poi-type-setting (#/(.getValue String) Settings "/general/default-poi-type" .defaultValue default-poi-type)]
+    (swap! app-info (constantly {:build-name (.-version pkg-info)
+                                 :build-number (.-buildNumber pkg-info)
+                                 :app-name (.-appName pkg-info)
+                                 :git-commit (String.fromEnvironment "GIT_COMMIT" .defaultValue "undef")
+                                 :git-branch (String.fromEnvironment "GIT_BRANCH" .defaultValue "undef")}))
+    (swap! refresh-location-distance-filter (constantly (int/tryParse _distance-setting)))
+    (swap! refresh-location-interval-duration (constantly (Duration .seconds _duration-setting)))
+    (swap! refresh-location-accuracy (constantly (str->location-accuracy _accuracy-setting)))
+    (swap! pois-radius (constantly _radius-setting))
+    (swap! api-query-timeout (constantly (int/tryParse _query-timeout-setting)))
+    (swap! force-debug-mode? (constantly _debug-setting))
+    (swap! selected-poi-type (constantly _poi-type-setting))))

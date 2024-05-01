@@ -1,4 +1,4 @@
-(ns club.bhikers.screens.settingstest
+(ns club.bhikers.screens.commontest
   (:require  ["package:flutter_test/flutter_test.dart" :as ft]
              ["package:flutter/material.dart" :as m]
              [club.bhikers.main :refer [BhikersClubApp]]
@@ -7,16 +7,20 @@
              [club.bhikers.lib.logging :as logging]
              [cljd.test :as t :refer [deftest is]]))
 
-(deftest titledumbtest
+(deftest aboutversiontest
   :tags [:widget]
   :runner (ft/testWidgets [tester])
   (do
-    (logging/d "run dumb test")
     (await (app/init! :mock-mode? true))
     (await (logging/init! :mock-mode? true))
     (logging/d "start app for tests")
-    (let [^ft/WidgetTester {:flds [pumpWidget pumpAndSettle]} tester
+    (let [^ft/WidgetTester {:flds [pumpWidget pumpAndSettle firstState tap]} tester
           _ (await (pumpWidget (BhikersClubApp "/settings")))
+          _ (await (pumpAndSettle))
+          _ (await (-> (ft/find.byType m/Scaffold)
+                       (#/(firstState m/ScaffoldState))
+                       .openDrawer))
+          _ (await (pumpAndSettle))
+          _ (await (tap (ft/find.byType m/AboutListTile)))
           _ (await (pumpAndSettle))]
-      (ft/expect (ft/find.text (l10n-str "app.title"))
-                 ft/findsOneWidget))))
+      (ft/expect (ft/find.text (get @app/app-info :app-name)) ft/findsOneWidget))))

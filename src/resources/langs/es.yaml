@@ -47,7 +47,7 @@ around_me:
     bikeshop: Tiendas de bicicletas
     toilet: Baños
 about:
-  screen_title: Acerca de
+  screen_title: Sobre
   description: Bhikers Club por ParaSitid
 common:
   close: Cerrar

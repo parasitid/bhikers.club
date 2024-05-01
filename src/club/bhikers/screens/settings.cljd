@@ -98,7 +98,7 @@
                        (* 10 60) "10m"
                        (* 30 60) "30m"
                        (* 60 60) "1h"}
-              .selected (.inSeconds ^Duration @refresh-location-interval-duration)
+              .selected (.-inSeconds ^Duration @refresh-location-interval-duration)
               .onChange #(swap! refresh-location-interval-duration (constantly
                                                                     (Duration .seconds %))))]
             [(settings/SettingsGroup

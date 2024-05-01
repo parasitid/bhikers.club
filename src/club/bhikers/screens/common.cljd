@@ -5,7 +5,8 @@
              :refer [dismiss-notif dismiss-all-notifs]]
             [club.bhikers.screens.debuglog :refer [debuglog-screen]]
             [club.bhikers.lib.app :refer [feat-enhance-gpx?
-                                          feat-fall-detector?]]
+                                          feat-fall-detector?
+                                          app-info]]
             [cljd.flutter :as f]))
 
 ;; Setup main drawer with app routes
@@ -48,8 +49,9 @@
                [(m/AboutListTile
                  .icon (m/Icon m/Icons.info)
                  .applicationIcon nil
-                 .applicationName (l10n-str "app.title")
-                 .applicationVersion "v0"
+                 .applicationName (get @app-info :app-name)
+                 .applicationVersion (str (get @app-info :build-name) "+" (get @app-info :build-number)
+                                          " (" (get @app-info :git-commit) ")")
                  .applicationLegalese (l10n-str "about.legalese")
                  .aboutBoxChildren [(m/SizedBox .height 24)
                                     (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)

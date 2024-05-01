@@ -63,9 +63,8 @@
 
 (defn main []
   ;; careful: order matters
-  (m/WidgetsFlutterBinding.ensureInitialized)
-  (await (logging/init!))
   (await (app/init!))
+  (await (logging/init!))
   (logging/d "starting app")
   (f/run (BhikersClubApp "/around-me"))
   (await logging/close!))
