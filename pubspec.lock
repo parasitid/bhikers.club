@@ -106,13 +106,21 @@ packages:
     source: hosted
     version: "0.7.10"
   dio:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: dio
       sha256: "5598aa796bbf4699afd5c67c0f5f6e2ed542afc956884b9cd58c306966efc260"
       url: "https://pub.dev"
     source: hosted
     version: "5.7.0"
+  dio_cache_interceptor:
+    dependency: "direct main"
+    description:
+      name: dio_cache_interceptor
+      sha256: "1346705a2057c265014d7696e3e2318b560bfb00b484dac7f9b01e2ceaebb07d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.5.1"
   dio_web_adapter:
     dependency: transitive
     description:
@@ -246,7 +254,7 @@ packages:
     source: sdk
     version: "0.0.0"
   geolocator:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: geolocator
       sha256: d2ec66329cab29cb297d51d96c067d457ca519dca8589665fa0b82ebacb7dbe4
@@ -659,7 +667,7 @@ packages:
     source: hosted
     version: "0.3.1"
   uuid:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: uuid
       sha256: a5be9ef6618a7ac1e964353ef476418026db906c4facdedaa299b7a2e71690ff

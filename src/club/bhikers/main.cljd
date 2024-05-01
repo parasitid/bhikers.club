@@ -3,12 +3,17 @@
   (:require ["package:flutter/material.dart" :as m]
             ["package:flutter_map/flutter_map.dart" :as map]
             ["package:latlong2/latlong.dart" :as ll]
+            ["package:uuid/uuid.dart" :as uuid]
             ["package:easy_localization/easy_localization.dart" :as l10n]
             ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
             ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
             ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
             ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
-            ["dart:async" :as dart-async]
+            ["package:dio/dio.dart" :as dio]
+            ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
+            ["dart:async" :as async]
+            ["package:geolocator/geolocator.dart" :as geo]
+            ["dart:convert" :as c]
             [cljd.flutter :as f]))
 
 ;; Around me ( +/- 10/20km): POIs*
@@ -18,15 +23,81 @@
 ;;
 ;; *POIs: bhikers, boulangeries+resto, hotels+campings+spots, points d'eau
 
+;; Setup default values
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
 (defonce default-locale "en")
-(defonce supported-poi-types ["bhikers" "shelters"
-                              "hotels" "campsites"
-                              "restaurants" "bakeries"
-                              "bikeshops" "bottlerefills"])
+(defonce supported-poi-types ["bhikers"
+                              "shelters"
+                              "hotels"
+                              "campsites"
+                              "restaurants"
+                              "bakeries"
+                              "bikeshops"
+                              "bottlerefills"])
 
+(defonce poi-types->osm-tags {"shelters" "amenity=shelter"
+                              "hotels" "tourism=hotel"
+                              "campsites" "tourism=camp_site"
+                              "restaurants" "amenity=restaurant"
+                              "bakeries" "shop=bakery"
+                              "bikeshops" "shop=bicycle"
+                              "bottlerefills" "fountain=bottle_refill"})
 (defonce default-poi-type "shelters")
 
+(defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
+
+;; geolocator
+(defn check-permissions []
+  (-> (.checkPermission geo/Geolocator)
+      (.then (fn [permission-status]
+               (if (or (= permission-status geo/LocationPermission.denied)
+                       (= permission-status geo/LocationPermission.deniedForever))
+                 (.requestPermission geo/Geolocator)
+                 permission-status)))))
+
+(defn start-position-stream ^#/(async/StreamSubscription geo/Position) [listener]
+  (do
+    (check-permissions)
+    (let [settings (geo/LocationSettings .accuracy geo/LocationAccuracy.high
+                                         .distanceFilter 1000  ;; Update for every 1km...
+                                         .timeLimit (dart:core/Duration .minutes 30))  ;; ... or for every 30minutes
+          stream (.getPositionStream geo/Geolocator .locationSettings settings)]
+      (.listen stream
+               (fn [^geo/Position position]
+                 (listener (.-latitude position)
+                           (.-longitude position)))))))
+
+;; Setup dio instance with cache+log interceptors for overpass-api.de
+(defonce uuidgen (atom (uuid/Uuid)))
+
+(defn create-cache-store ^cache/MemCacheStore [max-nb-of-entries max-entry-size]
+  (cache/MemCacheStore .maxSize (* max-nb-of-entries max-entry-size) .maxEntrySize max-entry-size))
+
+(defn create-dio-instance ^dio/Dio [base-url cache-store]
+  (let [api (dio/Dio
+             (dio/BaseOptions .baseUrl base-url
+                              .connectTimeout (dart:core/Duration .seconds 5)
+                              .receiveTimeout (dart:core/Duration .seconds 5)))]
+    (doto (.-interceptors api)
+      (.add (cache/DioCacheInterceptor
+             .options (cache/CacheOptions
+                       .store cache-store
+                       .policy cache/CachePolicy.forceCache
+                       .hitCacheOnErrorExcept [401 403]
+                       .maxStale (dart:core/Duration .days 1)
+                       .priority cache/CachePriority.normal
+                       .allowPostMethod false
+                       .keyBuilder (fn [^dio/RequestOptions req-opts]
+                                     (let [cache-key (->> req-opts
+                                                          .-uri
+                                                          .toString
+                                                          (.v5 ^uuid/Uuid @uuidgen uuid/Uuid.NAMESPACE_URL))]
+                                       cache-key)))))
+      (.add (dio/LogInterceptor)))
+    api))
+
+
+;; Setup main drawer with app routes
 (defn drawer []
   (f/widget
    :get [m/Navigator]
@@ -63,12 +134,17 @@
                               nil)))
                          drawer-routes)))))
 
+(defn app-bar []
+  (m/AppBar .title (m/Text (l10n/tr "app.title"))))
 
+;; Around me Screen
+
+;; setup around me right menu to select POIs on map
 (defn around-me-enddrawer []
   (f/widget
-   :get [:selected-poi-type
+   :get [:map-state
          m/Navigator]
-   :watch [selected-value selected-poi-type]
+   :watch [{:keys [selected-poi-type]} map-state]
    m/Drawer
    (m/ListView
     .padding (m/EdgeInsets.all 20)
@@ -76,62 +152,92 @@
     (map (fn [poi] (m/RadioListTile
                     .title (m/Text (l10n/tr (str "around_me.pois." poi)))
                     .value poi
-                    .groupValue selected-value
-                    .onChanged (fn [val] (swap! selected-poi-type (constantly val))
+                    .groupValue selected-poi-type
+                    .onChanged (fn [val]
+                                 (swap! map-state assoc :selected-poi-type val)
                                  (.pop navigator))))
          supported-poi-types))))
 
+;; get and extract json data from overpass-api-de
+(defn around-me-pois-markers [selected-poi-type [lat lon] radius]
+  (let [osm-tag (poi-type->osm-tag selected-poi-type)
+        query (str "data=[out:json];node[" osm-tag "](around:" radius "," lat "," lon ");out;")]
+    (m/debugPrint (str "Will request overpass-api.de with " query))
+    (f/widget
+     :get [:overpass-api]
+     :watch [response (try (await (.get ^dio/Dio overpass-api query))
+                           (catch dio/DioException e false))]
+     (if response
+       (let [{data .-data} ^dio/Response response
+             elements (get data "elements" [])]
+         (map/MarkerLayer .markers (map #(map/Marker .point (ll/LatLng (get % "lat")
+                                                                       (get % "lon"))
+                                                     .height 12
+                                                     .width 12
+                                                     .child (m/ColoredBox .color m/Colors.blue))
+                                        elements)))
+       (m/Container)))))
 
-
-(defn app-bar []
-  (m/AppBar .title (m/Text (l10n/tr "app.title"))))
-
+;; Setup around me main screen with Flutter Map,
+;; centered on device's current position
+;; with markers representing selected POIs in a certain radius
+;; around current position
 (defn around-me-screen []
   (f/widget
-   :bind {:selected-poi-type (atom default-poi-type)}
+   :let [map-state (atom {:selected-poi-type default-poi-type
+                          :current-pos false})]
+   :bind {:map-state map-state}
+   :managed [position-stream (start-position-stream
+                              (fn [lat lon]
+                                (swap! map-state assoc :current-pos [lat lon])))
+             :dispose .cancel]
+   :watch [{:keys [selected-poi-type current-pos]} map-state]
    (m/Scaffold
     .appBar (app-bar)
     .drawer (drawer)
     .endDrawer (around-me-enddrawer)
     .body
     (f/widget
-     :managed [align-position-stream-controller (#/(dart-async/StreamController double?))
+     :managed [align-position-stream-controller (#/(async/StreamController double?))
                :dispose .close]
      :watch [align-position-on-update (atom maploc/AlignOnUpdate.always) :as *align-position-on-update]
      (map/FlutterMap
       .options (map/MapOptions
                 .initialZoom 12
                 .minZoom 0
-                .maxZoom 16
+                .maxZoom 18
                 .onPositionChanged (fn [camera hasGesture]
                                      (when (and hasGesture
                                                 (not= align-position-on-update maploc/AlignOnUpdate.never))
                                        (reset! *align-position-on-update maploc/AlignOnUpdate.never))))
-
       .children
-      [(map/TileLayer
-        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        .userAgentPackageName "club.bhikers"
-        .tileProvider (cmap/CancellableNetworkTileProvider)
-        .maxZoom 19)
-       (maploc/CurrentLocationLayer
-        .alignPositionStream (.-stream align-position-stream-controller)
-        .alignPositionOnUpdate align-position-on-update)
-       (m/Align
-        .alignment m/Alignment.bottomRight
-        .child (m/Padding .padding (m/EdgeInsets.all 20.0)
-                          .child (m/FloatingActionButton
-                                  .onPressed (fn [] (do
-                                                      (reset! *align-position-on-update maploc/AlignOnUpdate.never)
-                                                      (.add align-position-stream-controller 12)))
-                                  .child (m/Icon m/Icons.my_location .color m/Colors.white))))
-       (map/Scalebar
-        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
-        .alignment m/Alignment.bottomLeft
-        .length map/ScalebarLength.m)])))))
+      (into [(map/TileLayer
+              .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              .userAgentPackageName "club.bhikers"
+              .tileProvider (cmap/CancellableNetworkTileProvider)
+              .maxZoom 19)
+             (maploc/CurrentLocationLayer
+              .alignPositionStream (.-stream align-position-stream-controller)
+              .alignPositionOnUpdate align-position-on-update)
+             (m/Align
+              .alignment m/Alignment.bottomRight
+              .child (m/Padding .padding (m/EdgeInsets.all 20.0)
+                                .child (m/FloatingActionButton
+                                        .onPressed (fn [] (do
+                                                            (reset! *align-position-on-update maploc/AlignOnUpdate.never)
+                                                            (.add align-position-stream-controller 12)))
+                                        .child (m/Icon m/Icons.my_location .color m/Colors.white))))
+             (map/Scalebar
+              .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+              .alignment m/Alignment.bottomLeft
+              .length map/ScalebarLength.m)]
+            (when current-pos [(around-me-pois-markers selected-poi-type current-pos 5000)])))))))
 
 
-
+;; Setup enhance gpx screen
+;; TODO:
+;; - select gpx file, enhance with POIs all along the trace, save
+;; - share with app (komoot/geoveo/...)
 (defn enhance-gpx-screen []
   (m/Scaffold
    .appBar (app-bar)
@@ -140,6 +246,10 @@
           m/Center
           (m/Text (l10n/tr "enhance_gpx.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
+;; Setup enhance gpx screen
+;; TODO:
+;; - run a fall detector in background to detect device fall, using various sensors
+;; - on alert, send sms/telegram msg
 (defn fall-detector-screen []
   (m/Scaffold
    .appBar (app-bar)
@@ -148,6 +258,8 @@
           m/Center
           (m/Text (l10n/tr "fall_detector.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
+;; Setup settings screen
+;; setup various settings options
 (defn settings-screen []
   (m/Scaffold
    .appBar (app-bar)
@@ -162,15 +274,15 @@
              .title  (l10n/tr "settings.general_group_title")
              .children
              [(#/(settings/DropDownSettingsTile String)
-               .leading (m/Icon m/Icons.language)
-               .settingKey "/general/language"
-               .title  (l10n/tr "settings.language")
-               .values (into {} (map (fn [lang] [lang (l10n/tr (str "settings.langs." lang))])
-                                     supported-locales))
-               .selected default-locale
-               .onChange #(do (m/debugPrint (str "selected lang " %))
-                              (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
-                              nil))])
+                 .leading (m/Icon m/Icons.language)
+                 .settingKey "/general/language"
+                 .title  (l10n/tr "settings.language")
+                 .values (into {} (map (fn [lang] [lang (l10n/tr (str "settings.langs." lang))])
+                                       supported-locales))
+                 .selected default-locale
+                 .onChange #(do (m/debugPrint (str "selected lang " %))
+                                (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
+                                nil))])
 
             (settings/SettingsGroup
              .title  (l10n/tr "settings.fall_detector_group_title")
@@ -188,6 +300,8 @@
                                  nil)
                  .initialValue  "+33000000000")])])]))))
 
+
+;; Setup about screen app
 (defn about-screen []
   (m/Scaffold
    .appBar (app-bar)
@@ -196,16 +310,20 @@
           m/Center
           (m/Text (l10n/tr "about.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
+;; Setup Theme of the material app
 (def theme
   (m/ThemeData
-    .colorSchemeSeed m/Colors.blue
-    .useMaterial3 true
-    .textTheme (m/TextTheme
-                 .displayLarge (m/TextStyle
-                                 .fontWeight m/FontWeight.w700
-                                 .fontSize 24
-                                 .color m/Colors.black))))
+   .colorSchemeSeed m/Colors.blue
+   .useMaterial3 true
+   .textTheme (m/TextTheme)
+              .displayLarge (m/TextStyle
+                              .fontWeight m/FontWeight.w700
+                              .fontSize 24
+                              .color m/Colors.black)))
 
+;; Main:
+;; init settings, localizqtion
+;; run MaterialApp with default screen "Around Me"
 (defn main []
   (do
     (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
@@ -223,10 +341,14 @@
         .path "src/resources/langs")
        (f/widget
         :context ctx
+        :managed [cache-store (create-cache-store 20 (* 1024 1024)) :dispose .close
+                  overpass-api (create-dio-instance "https://overpass-api.de/api/interpreter?" cache-store)
+                  :dispose .close]
+        :bind {:overpass-api overpass-api}
         (m/MaterialApp
-         .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .localizationDelegates)
-         .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .supportedLocales)
-         .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .locale)
+         .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .-localizationDelegates)
+         .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .-supportedLocales)
+         .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .-locale)
          .initialRoute "/around-me"
          .theme theme
          .routes (into {}
