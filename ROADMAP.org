@@ -18,10 +18,6 @@ this maybe consistent with In the meantime, geolocator low locationaccuracy
 
 -> fix is: add a double tap behavior on mylocation button to force refresh with high accuracy
 
-
-
-** Fix tests
-
 ** TODO hard to debug app without access to logs when hiking
 should be able to access logs in a file
 
@@ -29,7 +25,7 @@ should be able to access logs in a file
 
 ** TODO P1 fix log file
 
-** TODO P1 fix tests
+** DONE P1 fix tests
 
 * V0 App features
 ** global ui
@@ -64,9 +60,9 @@ should be able to access logs in a file
 *** KILL display bike_friends tags with special color and priority
 *** TODO tag POI as bike_friend (setup user management first)
 *** DONE on my location double tap, force gps to refresh location
-*** TODO P1 add api error in notifs
+*** DONE P1 add api error in notifs
 ** Settings
-*** TODO P1 add position refresh settings
+*** DONE P1 add position refresh settings
 ** About
 *** TODO make credits page
 *** TODO insert frugal app manifesto

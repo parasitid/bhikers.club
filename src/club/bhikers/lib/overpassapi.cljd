@@ -62,6 +62,7 @@
                               (await (.get ^dio/Dio api-instance query))
                               (catch dio/DioException e
                                 (do (logging/d "Exception! " e)
+                                    (debug-notif "error trying " api-instance ": " e)
                                     nil))))
               response (or (await (try-request (get apis :instance1)))
                            (await (try-request (get apis :instance2))))]

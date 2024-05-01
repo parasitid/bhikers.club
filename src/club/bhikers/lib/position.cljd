@@ -5,16 +5,16 @@
    ["dart:io" :as io]
    ["package:geolocator/geolocator.dart" :as geo]
    ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
-   [club.bhikers.lib.app :refer [debug-mode?]]
+   [club.bhikers.lib.app :refer [refresh-location-distance-filter
+                                 refresh-location-interval-duration
+                                 refresh-location-accuracy]]
    [club.bhikers.lib.logging :as logging]))
 
 ;; per device type location settings
 (defn streams-location-settings []
-  (let [distance-filter (if (debug-mode?) 0 500) ; Update position every 500m...
-        interval-duration (if (debug-mode?)
-                            (Duration .seconds 30)
-                            (Duration .minutes 5)) ; Update position every 5minutes...
-        accuracy geo/LocationAccuracy.low]
+  (let [distance-filter @refresh-location-distance-filter
+        interval-duration @refresh-location-interval-duration
+        accuracy @refresh-location-accuracy]
     (cond
       ;; kIsWeb must be checked first because platform on web is throwing errors
       foundation/kIsWeb (geo/LocationSettings .accuracy accuracy

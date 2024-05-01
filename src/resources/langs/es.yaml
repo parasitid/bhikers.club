@@ -12,6 +12,14 @@ settings:
   api_query_timeout: Tiempo de espera de consulta de api (en segundos)
   timeout_input_validation_error: El tiempo de espera debe ser un entero válido tal que 2 < tiempo de espera < 10
   debug_mode: Habilitar el modo de depuración
+  advanced_location_title: Actualizar ubicación (requiere reinicio)
+  location_distance_filter: Distancia mín. (Android)
+  distance_filter_input_validation_error: La distancia debe ser un número entero válido 0 < d < 10000
+  refresh_location_accuracy: Precisión
+  location_accuracy_low: Baja
+  location_accuracy_medium: Media
+  location_accuracy_high: Alta
+  refresh_location_interval_duration: Intervalo
   langs:
     en: Inglés
     fr: Francés

@@ -2,6 +2,7 @@
   (:require
    ["package:uuid/uuid.dart" :as uuid]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
+   ["package:geolocator/geolocator.dart" :as geo]
    ["package:easy_localization/easy_localization.dart" :as l10n]))
 
 (defn l10n-str [& args] (apply str (map l10n/tr args)))
@@ -18,3 +19,17 @@
   (cache/MemCacheStore .maxSize (* max-nb-of-entries max-entry-size) .maxEntrySize max-entry-size))
 
 (defn str->int [s min max] (let [num (int/tryParse s)] (if (and num (< min num max)) num nil)))
+
+(defn str->location-accuracy [s]
+  (cond
+    (= s "low") geo/LocationAccuracy.low
+    (= s "medium") geo/LocationAccuracy.medium
+    (= s "high") geo/LocationAccuracy.high
+    :else nil))
+
+(defn location-accuracy->str [a]
+  (cond
+    (= a geo/LocationAccuracy.low) "low"
+    (= a geo/LocationAccuracy.medium) "medium"
+    (= a geo/LocationAccuracy.high) "high"
+    :else nil))

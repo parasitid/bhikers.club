@@ -4,7 +4,9 @@
             ["package:easy_localization/easy_localization.dart" :as l10n]
             [club.bhikers.screens.common :refer [app-bar drawer]]
             [club.bhikers.lib.utils :refer [l10n-str
-                                            str->int]]
+                                            str->int
+                                            str->location-accuracy
+                                            location-accuracy->str]]
             [club.bhikers.lib.logging :as logging]
             [club.bhikers.lib.app :refer [supported-poi-types selected-poi-type
                                           supported-locales default-locale
@@ -13,8 +15,12 @@
                                           min-pois-radius
                                           pois-radius
                                           api-query-timeout
-                                          feat-fall-detector?]]
+                                          feat-fall-detector?
+                                          refresh-location-distance-filter
+                                          refresh-location-interval-duration
+                                          refresh-location-accuracy]]
             [cljd.flutter :as f]))
+
 
 ;; Setup settings screen
 ;; setup various settings options
@@ -60,23 +66,41 @@
                                    l10n/BuildContextEasyLocalizationExtension
                                    (.setLocale (m/Locale %)))
                                nil))])]
-            (if (not feat-fall-detector?) []
-                [(settings/SettingsGroup
-                  .title  (l10n-str "settings.fall_detector_group_title")
-                  .children
-                  [(settings/SwitchSettingsTile
-                    .leading (m/Icon m/Icons.crisis_alert)
-                    .settingKey "/fall-detector/alert-mode"
-                    .title (l10n-str "settings.alert_mode")
-                    .onChange #(logging/d "switched fall-detector-mode to " %)
-                    .childrenIfEnabled
-                    [(settings/TextInputSettingsTile
-                      .settingKey "/fall-detector/emergency-contact-phone-number"
-                      .title (l10n-str "settings.emerengcy_contact_phone_number")
-                      .keyboardType m/TextInputType.phone
-                      .validator #(do (logging/d "phone number " %)
-                                      nil)
-                      .initialValue  "+33000000000")])])])
+            [(settings/SettingsGroup
+              .title  (l10n-str "settings.advanced_location_title")
+              .children
+              [(settings/TextInputSettingsTile
+                .settingKey "/advanced-location/refresh-location-distance-filter"
+                .title (l10n-str "settings.location_distance_filter")
+                .keyboardType m/TextInputType.number
+                .onChange #(let [distance (str->int % 0 10000)]
+                             (when distance (swap! refresh-location-distance-filter (constantly distance))))
+                .validator #(when (not (str->int % 0 10000))
+                              (l10n-str "settings.distance_filter_input_validation_error"))
+                .initialValue (str @refresh-location-distance-filter))])
+             (#/(settings/DropDownSettingsTile String)
+              .leading (m/Icon m/Icons.location_searching)
+              .settingKey "/advanced-location/refresh-location-accuracy"
+              .title  (l10n-str "settings.refresh_location_accuracy")
+              .values {"low" (l10n-str "settings.location_accuracy_low")
+                       "medium" (l10n-str "settings.location_accuracy_medium")
+                       "high" (l10n-str "settings.location_accuracy_high")}
+              .selected (location-accuracy->str @refresh-location-accuracy)
+              .onChange #(swap! refresh-location-accuracy (constantly (str->location-accuracy %))))
+             (#/(settings/DropDownSettingsTile int) ;; it has to be string because shared prefs only stores strings
+              .leading (m/Icon m/Icons.location_searching)
+              .settingKey "/advanced-location/refresh-location-interval-duration"
+              .title  (l10n-str "settings.refresh_location_interval_duration")
+              .values {5 "5s"
+                       30 "30s"
+                       60 "1m"
+                       (* 5 60) "5m"
+                       (* 10 60) "10m"
+                       (* 30 60) "30m"
+                       (* 60 60) "1h"}
+              .selected (.inSeconds ^Duration @refresh-location-interval-duration)
+              .onChange #(swap! refresh-location-interval-duration (constantly
+                                                                    (Duration .seconds %))))]
             [(settings/SettingsGroup
               .title  (l10n-str "settings.advanced_group_title")
               .children

@@ -13,11 +13,16 @@
   :tags [:widget]
   :runner (ft/testWidgets [tester])
   (do
+    (logging/d "run dumb test")
     (m/WidgetsFlutterBinding.ensureInitialized)
-    (await (logging/init!))
+    (logging/d "widgets initialized")
+    (await (logging/init! :mock-mode? true))
+    (logging/d "logging initialized")
     (-> SharedPreferences (.setMockInitialValues {}))
     (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+    (logging/d "settings initialized")
     (await (l10n/EasyLocalization.ensureInitialized))
+    (logging/d "l10n initialized")
     (logging/d "start app for tests")
     (let [^ft/WidgetTester {:flds [pumpWidget pumpAndSettle]} tester
           _ (await (pumpWidget (BhikersClubApp "/settings")))

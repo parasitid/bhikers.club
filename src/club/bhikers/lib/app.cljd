@@ -3,9 +3,13 @@
             ["package:path_provider/path_provider.dart" :refer [getApplicationDocumentsDirectory]]
             ["package:flutter/foundation.dart" :refer [kDebugMode]]
             ["package:latlong2/latlong.dart" :as ll]
+            ["package:geolocator/geolocator.dart" :as geo]
+            ["package:flutter/foundation.dart" :refer [debugPrint]]
             ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
             ["package:easy_localization/easy_localization.dart" :as l10n]
-            ["dart:io" :refer [Directory]]))
+            ["dart:io" :refer [Directory]]
+            [club.bhikers.lib.utils :refer [str->location-accuracy
+                                            location-accuracy->str]]))
 
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
 (defonce default-locale "en")
@@ -33,6 +37,10 @@
 (defonce feat-fall-detector? false)
 (defonce feat-enhance-gpx? false)
 
+(defonce refresh-location-distance-filter (atom 500))
+(defonce refresh-location-interval-duration (atom (Duration .seconds 30)))
+(defonce refresh-location-accuracy (atom geo/LocationAccuracy.low))
+
 (defn debug-mode? [] (or @force-debug-mode? kDebugMode))
 
 (defonce force-debug-mode? (atom false))
@@ -40,6 +48,17 @@
 (defn init! []
   (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
   (await (l10n/EasyLocalization.ensureInitialized))
+
+
+  (let [_duration-setting (#/(.getValue int) Settings "/advanced-location/refresh-location-interval-duration"
+                             .defaultValue 30)
+        _accuracy-setting (#/(.getValue String) Settings "/advanced-location/refresh-location-accuracy"
+                             .defaultValue "low")
+        _distance-setting (#/(.getValue String) Settings "/advanced-location/refresh-location-distance-filter"
+                                      .defaultValue "500")]
+   (swap! refresh-location-distance-filter (constantly (int/tryParse _distance-setting)))
+   (swap! refresh-location-interval-duration (constantly (Duration .seconds _duration-setting)))
+   (swap! refresh-location-accuracy (constantly (str->location-accuracy _accuracy-setting))))
 
   (swap! pois-radius (constantly (#/(.getValue double) Settings "/general/pois-radius"
                                                        .defaultValue 1000)))

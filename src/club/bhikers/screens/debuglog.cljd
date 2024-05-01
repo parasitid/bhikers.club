@@ -20,7 +20,7 @@
                                                              .onPressed #(.pop navigator))))
     .floatingActionButton (m/FloatingActionButton
                            .onPressed (fn []
-                                        (when (.hasClients scroll-controller)
+                                        (when (.-hasClients scroll-controller)
                                           (-> scroll-controller (.jumpTo
                                                                  (-> scroll-controller .-position .-maxScrollExtent))))
                                         nil)

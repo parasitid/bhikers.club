@@ -14,31 +14,34 @@
 
 (defn d [& args]
   (let [msg (apply str (into ["[club.bhikers] "] args))]
-    (debugPrint msg)
-    (when (not @logger)
-      (.d ^Logger @logger msg))))
+    (if @logger
+      (.d ^Logger @logger msg)
+      (debugPrint msg))))
 
 (defn ^#/(Future File) latest-log-file []
-  (first (filter  #(= "latest.log" (basename (.-path %)))
+  (first (filter #(= "latest.log" (basename (.-path ^File %)))
                   (.listSync (await (log-file-dir))))))
 
-(defn init! []
-  (debugPrint "init logging system")
-  (when (not @logger)
-    (add-watch force-debug-mode? :reinit (fn [_ _ _ _]
-                                           (debugPrint "reinit logging system")
-                                           (init!))))
+(defn init! [& {:keys [mock-mode?] :or {mock-mode? false?}}]
+  (if mock-mode?
+    (d "logging mock mode!")
+    (do
+     (d "init logging system")
+     (when (not @logger)
+       (add-watch force-debug-mode? :reinit (fn [_ _ _ _]
+                                              (d "reinit logging system")
+                                              (init!))))
 
-  (let [log-dir (await (log-file-dir))
-        _ (await (.create log-dir .recursive true))
-        file-output (AdvancedFileOutput .path (.-path log-dir))
-        new-logger (Logger
-                    .level (if (debug-mode?) Level.debug Level.info)
-                    .output (if (debug-mode?)
-                              (MultiOutput [file-output (ConsoleOutput)])
-                              file-output)
-                    .printer (SimplePrinter .colors true .printTime true))]
-    (debugPrint (str "swap logging system (see file in " (.-path log-dir) ")"))
-    (swap! logger (constantly new-logger))))
+     (let [log-dir (await (log-file-dir))
+           _ (await (.create log-dir .recursive true))
+           file-output (AdvancedFileOutput .path (.-path log-dir))
+           new-logger (Logger
+                       .level (if (debug-mode?) Level.debug Level.info)
+                       .output (if (debug-mode?)
+                                 (MultiOutput [file-output (ConsoleOutput)])
+                                 file-output)
+                       .printer (SimplePrinter .colors true .printTime true))]
+       (d (str "swap logging system (see file in " (.-path log-dir) ")"))
+       (swap! logger (constantly new-logger))))))
 
 (defn close! [] (await (.close ^Logger @logger)))

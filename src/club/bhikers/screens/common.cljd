@@ -81,29 +81,29 @@
    :context ctx
    :get [:notifications]
    :watch [*notifs notifications]
-   (m/Stack .children (concat
-                       [(m/IconButton .icon (m/Icon m/Icons.notification_important)
-                                      .tooltip "important"
-                                      .onPressed (fn []
-                                                   (m/showModalBottomSheet
-                                                    .context ctx
-                                                    .builder (f/build
-                                                              (f/widget
-                                                               (m/Container .height 300)
-                                                               (notifications-list-widget))))
-                                                   nil))]
-                       (let [nb-notifs (count *notifs)]
-                         (if (< 0 nb-notifs)
-                           [(f/widget
-                             (m/Positioned .right 12 .top 12)
-                             (m/Container  .padding (m/EdgeInsets.all 5)
-                                           .decoration (m/BoxDecoration
-                                                        .shape m/BoxShape.circle
-                                                        .color m/Colors.red)
-                                           .constraints (m/BoxConstraints
-                                                         .minWidth 5
-                                                         .minHeight 5)))]
-                           []))))))
+   (m/Stack .children
+            (let [nb-notifs (count *notifs)]
+              (if (> 1 nb-notifs)
+                []
+                [(m/IconButton .icon (m/Icon m/Icons.notification_important)
+                               .tooltip "important"
+                               .onPressed (fn []
+                                            (m/showModalBottomSheet
+                                             .context ctx
+                                             .builder (f/build
+                                                       (f/widget
+                                                        (m/Container .height 300)
+                                                        (notifications-list-widget))))
+                                            nil))
+                 (f/widget
+                  (m/Positioned .right 12 .top 12)
+                  (m/Container  .padding (m/EdgeInsets.all 5)
+                                .decoration (m/BoxDecoration
+                                             .shape m/BoxShape.circle
+                                             .color m/Colors.red)
+                                .constraints (m/BoxConstraints
+                                              .minWidth 5
+                                              .minHeight 5)))])))))
 
 (defn debuglog-screen-button []
   (f/widget :get [m/Navigator]
@@ -121,5 +121,6 @@
                        additional-actions []}}]
   (m/AppBar .title (m/Text (l10n-str title))
             .actions (concat
-                      [(debuglog-screen-button)]
+                      [(debuglog-screen-button)
+                       (notifications-button)]
                       additional-actions)))

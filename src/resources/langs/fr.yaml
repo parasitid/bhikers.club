@@ -12,6 +12,14 @@ settings:
   api_query_timeout: délai d'attente de la requête api (en secondes)
   timeout_input_validation_error: Le délai d'attente doit être un entier valide tel que 2 < délai d'attente < 10
   debug_mode: Activer le mode débogage
+  advanced_location_title: Mise à jour de la localisation (redémarrage requis)
+  location_distance_filter: Distance min. (Android uniquement)
+  distance_filter_input_validation_error: La distance doit être un entier valide 0 < d < 10000
+  refresh_location_accuracy: Précision
+  location_accuracy_low: Faible
+  location_accuracy_medium: Moyenne
+  location_accuracy_high: Élevée
+  refresh_location_interval_duration: Intervalle
   langs:
     en: Anglais
     fr: Français
