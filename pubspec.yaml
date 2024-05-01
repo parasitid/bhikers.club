@@ -38,6 +38,7 @@ dependencies:
   flutter_map: ^7.0.2
   flutter_map_location_marker: ^9.1.1
   flutter_settings_screens: ^0.3.4
+  flutter_map_cancellable_tile_provider: ^3.0.2
 
 dev_dependencies:
   flutter_test:
