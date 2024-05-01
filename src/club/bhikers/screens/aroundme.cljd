@@ -50,7 +50,7 @@
           supported-poi-types)
      [(m/Row
        .children
-       [(m/Text (l10n-str "radius"))
+       [(m/Text (l10n-str "common.radius"))
         (m/Slider
          .value transient-radius
          .max max-pois-radius

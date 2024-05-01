@@ -1,6 +1,8 @@
 (ns club.bhikers.lib.map
   "Zoom buttons widget"
   (:require ["package:flutter/material.dart" :as m]
+           ["package:flutter_settings_screens/flutter_settings_screens.dart"
+            :refer [Settings]]
             ["package:flutter_map/flutter_map.dart" :as fmap]
             ["package:geolocator/geolocator.dart" :as geo]
             ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
@@ -23,8 +25,8 @@
                          :current-pos nil
                          :current-center nil
                          :current-pos-as-center? true
-                         :transient-radius 1000
-                         :radius 1000
+                         :transient-radius (#/(.getValue double) Settings "/general/pois_radius" .defaultValue 1000)
+                         :radius (#/(.getValue double) Settings "/general/pois_radius" .defaultValue 1000)
                          :align-position-on-update maploc/AlignOnUpdate.always})]
     (when debug-mode?
       (add-watch map-state :map-message
