@@ -63,8 +63,8 @@
                                 (do (log "Exception! " e)
                                     (debug-notif (-> ^dio/Dio api-instance .-options .-baseUrl) " is currently having issues...")
                                     nil))))
-              response (or (await (try-request (get apis :instance1)))
-                           (await (try-request (get apis :instance2))))]
+              response (or (await (try-request (get apis :instance2)))
+                           (await (try-request (get apis :instance1))))]
           (when response
             (let [{{elements "elements"} .-data} ^dio/Response response]
               (log "elements fetched from api: " elements)

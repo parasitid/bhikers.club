@@ -5,35 +5,34 @@
    [club.bhikers.lib.utils :refer [log]]
    [club.bhikers.lib.overpassapi :as oapi]))
 
-(defonce poi-types->osm-tags {"shelters" ["amenity=shelter"
-                                          "shelter=yes"
-                                          "shelter_type=weather_shelter"
-                                          "shelter_type=picnic_shelter"
-                                          "tourism=alpine_hut"]
-                              "hotels" ["tourism=hotel"
-                                        "building=hotel"
-                                        "tourism=alpine_hut"
-                                        "tourism=motel"
-                                        "tourism=hostel"
-                                        "tourism=guest_house"]
-                              "campsites" ["tourism=camp_site"
-                                           "tourism=alpine_hut"
-                                           "tourism=caravan_site"
-                                           "tourism=wilderness_hut"]
-                              "restaurants" ["amenity=restaurant"]
-                              "bakeries" ["shop=bakery"
-                                          "cuisine=sandwich"]
-                              "bikeshops" ["shop=bicycle"
-                                           "amenity=bicycle_repair_station"]
-                              "bottlerefills" ["fountain=drinking"
-                                               "fountain=bottle_refill"
-                                               "drinking_water=yes"]
-                              "toilets" ["amenity=toilets"
-                                         "toilets=yes"
-                                         "building=toilets"]})
+(defonce poi-types->osm-tags {"shelter" ["amenity=shelter"
+                                         "shelter=yes"
+                                         "shelter_type=weather_shelter"
+                                         "shelter_type=picnic_shelter"
+                                         "tourism=alpine_hut"]
+                              "hotel" ["tourism=hotel"
+                                       "building=hotel"
+                                       "tourism=alpine_hut"
+                                       "tourism=motel"
+                                       "tourism=hostel"
+                                       "tourism=guest_house"]
+                              "campsite" ["tourism=camp_site"
+                                          "tourism=alpine_hut"
+                                          "tourism=caravan_site"
+                                          "tourism=wilderness_hut"]
+                              "restaurant" ["amenity=restaurant"]
+                              "bakery" ["shop=bakery"
+                                        "cuisine=sandwich"]
+                              "bikeshop" ["shop=bicycle"
+                                          "amenity=bicycle_repair_station"]
+                              "bottlerefill" ["fountain=drinking"
+                                              "fountain=bottle_refill"
+                                              "drinking_water=yes"]
+                              "toilet" ["amenity=toilets"
+                                        "toilets=yes"
+                                        "building=toilets"]})
 
 (defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
-
 
 (defn dynamic-map-pois [map-state overpass-api]
   (let [pois (atom [])]
@@ -49,7 +48,10 @@
                                                    (poi-type->osm-tag selected-poi-type)
                                                    radius))]
                          (if results
-                           (reset! pois results)
+                           (reset! pois (map (fn [^Map poi]
+                                               (do (.putIfAbsent poi "poi-type" (fn [] selected-poi-type))
+                                                   poi))
+                                             results));
                            (log "no pois fetched! map-state was: " new-state))))))))
     pois))
 

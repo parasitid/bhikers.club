@@ -42,5 +42,6 @@ devshell.mkShell {
     clojure
     google-chrome
     fastlane
+    jekyll
   ] ++ conditionalPackages;
 }

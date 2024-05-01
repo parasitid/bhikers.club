@@ -29,15 +29,15 @@ around_me:
   no_permission: Si prega di concedere l'autorizzazione alla posizione
   unknown_location: Posizione attuale sconosciuta...
   poi_types:
-    bhikers: Bhikers
-    shelters: Rifugi
-    hotels: Hotel
-    campsites: Campeggi
-    restaurants: Ristoranti
-    bottlerefills: Ricariche di bottiglie
-    bakeries: Panetterie
-    bikeshops: Negozi di biciclette
-    toilets: Toilette
+    bhiker: Bhikers
+    shelter: Rifugi
+    hotel: Hotel
+    campsite: Campeggi
+    restaurant: Ristoranti
+    bottlerefill: Ricariche di bottiglie
+    bakery: Panetterie
+    bikeshop: Negozi di biciclette
+    toilet: Toilette
 about:
   screen_title: Informazioni
   description: Bhikers Club di ParaSitid

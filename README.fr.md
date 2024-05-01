@@ -8,9 +8,10 @@
 # 🇫🇷 bhikers club app – Votre compagnon vélo essentiel
 
 <p align="center">
-  <img src="misc/Screenshot_2025-02-26_14-07-43.png" width="30%" />
-  <img src="misc/Screenshot_2025-02-26_14-10-28.png" width="30%" />
-  <img src="misc/Screenshot_2025-02-26_14-14-33.png" width="30%" />
+  <img src="misc/Screenshot_2025-02-26_14-07-43.png" width="25%" />
+  <img src="misc/Screenshot_2025-02-26_14-10-28.png" width="25%" />
+  <img src="misc/Screenshot_2025-03-12_13-51-08.png" width="25%" />
+  <img src="misc/Screenshot_2025-02-26_14-14-33.png" width="25%" />
 </p>
 
 ## 📌 À propos
@@ -30,4 +31,8 @@
 - 📱 [Le Manifeste des Applications Frugales](src/resources/manifestos/FRUGALAPP_MANIFESTO.fr.md)
 
 ## 🙏 Remerciements Spéciaux
-Nous tenons à exprimer notre gratitude envers les incroyables communautés Clojure et ClojureDart. Merci pour votre soutien!
+Nous tenons à exprimer notre gratitude envers les incroyables communautés OpenStreetMap,  et ClojureDart. Merci pour votre soutien!
+
+🌷🚴‍♀️ Ma reconnaissance éternelle à Zéfal, Léon Giran-Max et Marie-Antoine Barret. 🚴‍♀️🌷
+
+[![GitHub](https://img.shields.io/badge/GitHub-parasitid%2Fbhikers.club-black?logo=github)](https://github.com/parasitid/bhikers.club)

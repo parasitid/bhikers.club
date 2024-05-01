@@ -7,6 +7,13 @@
 
 # 🇮🇹 bhikers club app – Il tuo compagno essenziale per il ciclismo
 
+<p align="center">
+  <img src="misc/Screenshot_2025-02-26_14-07-43.png" width="25%" />
+  <img src="misc/Screenshot_2025-02-26_14-10-28.png" width="25%" />
+  <img src="misc/Screenshot_2025-03-12_13-51-08.png" width="25%" />
+  <img src="misc/Screenshot_2025-02-26_14-14-33.png" width="25%" />
+</p>
+
 ## 📌 Informazioni
 **Bhikers club** è un'app mobile gratuita e attenta alla privacy per ciclisti ed escursionisti, basata sui dati e servizi di OpenStreetMap. Ti aiuta a trovare i luoghi essenziali lungo il percorso, come un **ristorante**, una **panetteria**, un **hotel**, un **campeggio**, un **rifugio** o una **fontana d’acqua**.
 
@@ -25,4 +32,8 @@ Gli utenti possono contribuire taggando i Punti di Interesse (POI) in **OpenStre
 - 📱 [Il Manifesto delle App Frugali](src/resources/manifestos/FRUGALAPP_MANIFESTO.it.md)
 
 ## 🙏 Ringraziamenti Speciali
-Desideriamo esprimere la nostra gratitudine alle incredibili comunità di Clojure e ClojureDart. Grazie per il vostro supporto!
+Desideriamo esprimere la nostra gratitudine alle incredibili comunità di OpenStreetMap,  e ClojureDart. Grazie per il vostro supporto!
+
+🌷🚴‍♀️ La mia eterna gratitudine a Zéfal, Léon Giran-Max e Marie-Antoine Barret. 🚴‍♀️🌷
+
+[![GitHub](https://img.shields.io/badge/GitHub-parasitid%2Fbhikers.club-black?logo=github)](https://github.com/parasitid/bhikers.club)

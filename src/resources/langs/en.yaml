@@ -29,25 +29,25 @@ around_me:
   no_permission: Please grant Location permission
   unknown_location: Current location unknown...
   poi_types:
-    bhikers: Bhikers
-    shelters: Shelters
-    hotels: Hotels
-    campsites: Camp sites
-    restaurants: Restaurants
-    bottlerefills: Bottle refills
-    bakeries: Bakeries
-    bikeshops: Bike shops
-    toilets: Toilets
+    bhiker: Bhikers
+    shelter: Shelters
+    hotel: Hotels
+    campsite: Camp sites
+    restaurant: Restaurants
+    bottlerefill: Bottle refills
+    bakery: Bakeries
+    bikeshop: Bike shops
+    toilet: Toilets
   pois:
-    bhikers: "@:common.bhiker_emoji @:around_me.poi_types.bhikers"
-    shelters: "@:common.shelter_emoji @:around_me.poi_types.shelters"
-    hotels: "@:common.hotel_emoji @:around_me.poi_types.hotels"
-    campsites: "@:common.campsite_emoji @:around_me.poi_types.campsites"
-    restaurants: "@:common.restaurant_emoji @:around_me.poi_types.restaurants"
-    bottlerefills: "@:common.bottlerefill_emoji @:around_me.poi_types.bottlerefills"
-    bakeries: "@:common.bakery_emoji @:around_me.poi_types.bakeries"
-    bikeshops: "@:common.bikeshop_emoji @:around_me.poi_types.bikeshops"
-    toilets: "@:common.toilets_emoji @:around_me.poi_types.toilets"
+    bhiker: "@:common.bhiker_emoji @:around_me.poi_types.bhiker"
+    shelter: "@:common.shelter_emoji @:around_me.poi_types.shelter"
+    hotel: "@:common.hotel_emoji @:around_me.poi_types.hotel"
+    campsite: "@:common.campsite_emoji @:around_me.poi_types.campsite"
+    restaurant: "@:common.restaurant_emoji @:around_me.poi_types.restaurant"
+    bottlerefill: "@:common.bottlerefill_emoji @:around_me.poi_types.bottlerefill"
+    bakery: "@:common.bakery_emoji @:around_me.poi_types.bakery"
+    bikeshop: "@:common.bikeshop_emoji @:around_me.poi_types.bikeshop"
+    toilet: "@:common.toilets_emoji @:around_me.poi_types.toilet"
 about:
   screen_title: About
   description: Bhikers Club by ParaSitid
@@ -63,7 +63,8 @@ common:
   bottlerefill_emoji: 🚰
   bakery_emoji: 🥪
   bikeshop_emoji: 🔧
-  toilets_emoji: 🚽
+  toilet_emoji: 🚽
   radius: Search radius
+  no_name: No name
 notifications:
   title: Notifications

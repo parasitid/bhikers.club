@@ -34,17 +34,8 @@
 ;; Main:
 ;; init settings, localizqtion
 ;; run MaterialApp with default screen "Around Me"
-(defn main []
-  ;; careful: order matters
-  (log "init settings with shared preference cache provider")
-  (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
-  (log "init flutter bindings")
-  (m/WidgetsFlutterBinding.ensureInitialized)
-  (log "init easy l10n")
-  (await (l10n/EasyLocalization.ensureInitialized))
-  (log "starting app")
-  (f/run
-    (f/widget
+(defn BhikersClubApp [initialRoute]
+  (f/widget
      (l10n/EasyLocalization
       .supportedLocales (map #(m/Locale %) supported-locales)
       .fallbackLocale (m/Locale default-locale)
@@ -62,11 +53,22 @@
        .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .-localizationDelegates)
        .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .-supportedLocales)
        .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .-locale)
-       .initialRoute "/around-me"
+       .initialRoute initialRoute
        .theme theme
        .routes (into {}
                      (keep (fn [[k v]] {k (fn ^m/Widget k [_] (v))}))
                      {"/around-me" around-me-screen
                       "/enhance-gpx" enhance-gpx-screen
                       "/fall-detector" fall-detector-screen
-                      "/settings" settings-screen}))))))
+                      "/settings" settings-screen})))))
+
+(defn main []
+  ;; careful: order matters
+  (log "init settings with shared preference cache provider")
+  (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+  (log "init flutter bindings")
+  (m/WidgetsFlutterBinding.ensureInitialized)
+  (log "init easy l10n")
+  (await (l10n/EasyLocalization.ensureInitialized))
+  (log "starting app")
+  (f/run (BhikersClubApp "/around-me")))

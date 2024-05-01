@@ -29,15 +29,15 @@ around_me:
   no_permission: Veuillez accorder l'autorisation de localisation
   unknown_location: Emplacement actuel inconnu...
   poi_types:
-    bhikers: Bhikers
-    shelters: Abris
-    hotels: Hôtels
-    campsites: Campings
-    restaurants: Restaurants
-    bottlerefills: Eau potable
-    bakeries: Boulangeries
-    bikeshops: Magasins de vélos
-    toilets: Toilettes
+    bhiker: Bhikers
+    shelter: Abris
+    hotel: Hôtels
+    campsite: Campings
+    restaurant: Restaurants
+    bottlerefill: Eau potable
+    bakery: Boulangeries
+    bikeshop: Magasins de vélos
+    toilet: Toilettes
 about:
   screen_title: À propos
   description: Bhikers Club par ParaSitid

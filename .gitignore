@@ -61,3 +61,4 @@ google_service_account.json
 **/fastlane/screenshots
 **/fastlane/test_output
 flake.lock
+.aider*

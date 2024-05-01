@@ -46,21 +46,27 @@
                      .value poi
                      .groupValue selected-poi-type
                      .onChanged (fn [val]
-                                  (when (not= val (get @map-state :selected-poi-type))
+                                  (when (not= val selected-poi-type)
                                     (log "changed poi type to " val)
                                     (swap! map-state assoc :selected-poi-type val)
                                     (.pop navigator)))))
           supported-poi-types)
      [(m/Row
        .children
-       [(m/Text (l10n-str "common.radius"))
-        (m/Slider
-         .value transient-radius
-         .max max-pois-radius
-         .divisions 5
-         .label (str transient-radius "m")
-         .onChanged #(swap! map-state assoc :transient-radius (.round ^double %))
-         .onChangeEnd (fn [_] (swap! map-state assoc :radius transient-radius)))])]))))
+       [(f/widget
+         (m/Expanded .flex 2)
+         (m/Text (str (l10n-str "common.radius") "\n(" transient-radius "m)")
+                 .overflow m/TextOverflow.ellipsis
+                  .softWrap true .maxLines 2))
+        (f/widget
+         (m/Expanded .flex 4)
+         (m/Slider
+          .value transient-radius
+          .max max-pois-radius
+          .divisions 5
+          .label (str transient-radius "m")
+          .onChanged #(swap! map-state assoc :transient-radius (.round ^double %))
+          .onChangeEnd (fn [_] (swap! map-state assoc :radius transient-radius))))])]))))
 
   ; Filter out blacklisted keys
 
@@ -74,7 +80,7 @@
            .builder (f/build [open-link]
                              (f/widget
                               (m/TextButton.icon .onPressed open-link
-                                                 .label (m/Text value .overflow m/TextOverflow.ellipsis .softWrap true .maxLines 2)
+                                                 .label (m/Text value .overflow m/TextOverflow.fade .softWrap true .maxLines 2)
                                                  .icon (m/Icon icon))))))))
 
 (defonce phone-converter (basic-converter "tel://" m/Icons.call))
@@ -108,42 +114,56 @@
      (filter some? prioritized-widgets)    ; Only include non-nil prioritized tags
      other-widgets)))
 
+(defn poi-title-widget [poi]
+  (let [poi-name (get-in poi ["tags" "name"] (l10n-str "common.no_name"))
+        poi-type (get poi "poi-type" false)
+        poi-icon (if poi-type (l10n-str (str "common." poi-type "_emoji")) "")]
+    (f/widget
+     (m/Expanded .flex 2)
+     (m/Text (str poi-icon " " poi-name)
+             .overflow m/TextOverflow.fade
+             .style (m/TextStyle .fontSize 16
+                                 .fontWeight m/FontWeight.bold)))))
+
 ;; modal bottom sheet displaying info about a POI
 (defn around-me-show-poi-info [ctx poi]
   (m/showModalBottomSheet
    .context ctx
+   .isScrollControlled true
+   .shape (m/RoundedRectangleBorder .borderRadius (m/BorderRadius.vertical .top (m/Radius.circular 16)))
    .builder (f/build
              (f/widget
               (m/Container .height 300 .padding (m/EdgeInsets.all 16))
               (m/Column .mainAxisSize m/MainAxisSize.min
                         .children [(m/Row
-                                    .mainAxisAlignment m/MainAxisAlignment.end
-                                    .children [(m/IconButton .icon (m/Icon m/Icons.edit .size 30)
-                                                             .tooltip (l10n-str "edit-everydoor")
-                                                             .onPressed #(do (edit-poi poi)
-                                                                             nil))
-                                               (m/IconButton .icon (m/Icon m/Icons.turn_right .size 30)
-                                                             .tooltip (l10n-str "route-to-poi")
-                                                             .onPressed #(do (route-to-poi poi)
-                                                                             nil))])
+                                    .children [(poi-title-widget poi)
+                                               (f/widget
+                                                (m/Row
+                                                 .mainAxisAlignment m/MainAxisAlignment.end
+                                                 .children [
+                                                            (m/IconButton .icon (m/Icon m/Icons.edit .size 25)
+                                                                          .tooltip (l10n-str "edit-everydoor")
+                                                                          .onPressed #(do (edit-poi poi)
+                                                                                          nil))
+                                                            (m/IconButton .icon (m/Icon m/Icons.turn_right .size 25)
+                                                                          .tooltip (l10n-str "route-to-poi")
+                                                                          .onPressed #(do (route-to-poi poi)
+                                                                                          nil))]))
+                                               ])
                                    (m/SizedBox .height 16)
                                    (f/widget
                                     m/Expanded
-                                    m/SingleChildScrollView
-                                    (m/Column
-                                     .crossAxisAlignment m/CrossAxisAlignment.stretch
+                                    (m/ListView
                                      .children (map (fn [[name value]]
-                                                      (f/widget
-                                                       (m/Padding .padding (m/EdgeInsets.all 8))
-                                                       (m/Row .mainAxisAlignment m/MainAxisAlignment.start
-                                                              .children [(f/widget
-                                                                          m/Flexible
-                                                                          (m/Text (str (l10n-str name) ": " )
-                                                                                  .style (m/TextStyle .fontWeight m/FontWeight.bold)
-                                                                                  .overflow m/TextOverflow.ellipsis))
-                                                                         (f/widget
-                                                                          m/Expanded
-                                                                          value)])))
+                                                      (m/Row .mainAxisAlignment m/MainAxisAlignment.start
+                                                             .children [(f/widget
+                                                                         (m/Expanded .flex 2)
+                                                                         (m/Text (str (l10n-str name) ": " )
+                                                                                 .style (m/TextStyle .fontWeight m/FontWeight.bold)
+                                                                                 .overflow m/TextOverflow.ellipsis))
+                                                                        (f/widget
+                                                                         (m/Expanded .flex 4)
+                                                                         value)]))
                                                     (prioritize-attributes (get poi "tags" {})))))])))))
 
 ;; widget for POI markers on map
@@ -251,7 +271,6 @@
        .positionStream (map/location-marker-stream dms)
        .alignPositionStream (map/align-position-stream dms)
        .alignPositionOnUpdate align-position-on-update
-       .followOnLocationUpdate maploc/FollowOnLocationUpdate.always
        .alignDirectionOnUpdate maploc/AlignOnUpdate.never)
       (map/control-buttons :alignment m/Alignment.bottomRight
                            :onMyLocation (map/align-on-current-pos-callback dms))

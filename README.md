@@ -11,9 +11,10 @@
 🇬🇧 English | 🇫🇷 [Français](README.fr.md) | 🇩🇪 [Deutsch](README.de.md) | 🇪🇸 [Español](README.es.md) | 🇮🇹 [Italiano](README.it.md) 
 
 <p align="center">
-  <img src="misc/Screenshot_2025-02-26_14-07-43.png" width="30%" />
-  <img src="misc/Screenshot_2025-02-26_14-10-28.png" width="30%" />
-  <img src="misc/Screenshot_2025-02-26_14-14-33.png" width="30%" />
+  <img src="misc/Screenshot_2025-02-26_14-07-43.png" width="25%" />
+  <img src="misc/Screenshot_2025-02-26_14-10-28.png" width="25%" />
+  <img src="misc/Screenshot_2025-03-12_13-51-08.png" width="25%" />
+  <img src="misc/Screenshot_2025-02-26_14-14-33.png" width="25%" />
 </p>
 
 ## 📌 About
@@ -40,4 +41,8 @@ We are currently seeking help to build and test the iOS version of the app. If y
 
 ## 🙏 Special Thanks
 
-We would like to express our gratitude to the incredible Clojure and ClojureDart communities. Thanks for your support!
+We would like to express our gratitude to the incredible OpenStreetMap, Clojure and ClojureDart communities. Thanks for your support!
+
+🌷🚴‍♀️ My eternal gratitude to Zéfal, Léon Giran-Max and Marie-Antoine Barret. 🚴‍♀️🌷
+
+[![GitHub](https://img.shields.io/badge/GitHub-parasitid%2Fbhikers.club-black?logo=github)](https://github.com/parasitid/bhikers.club)

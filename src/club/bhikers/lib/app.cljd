@@ -7,17 +7,17 @@
 (defonce default-locale "en")
 (defonce max-pois-radius 10000);; 20km
 (defonce min-pois-radius 500);; 20km
-(defonce supported-poi-types ["shelters"
-                              "hotels"
-                              "campsites"
-                              "restaurants"
-                              "bakeries"
-                              "bikeshops"
-                              "bottlerefills"
-                              "toilets"])
+(defonce supported-poi-types ["shelter"
+                              "hotel"
+                              "campsite"
+                              "restaurant"
+                              "bakery"
+                              "bikeshop"
+                              "bottlerefill"
+                              "toilet"])
 
 
-(defonce default-poi-type "bakeries")
+(defonce default-poi-type "bakery")
 (defonce selected-poi-type (atom default-poi-type))
 
 (defonce icicommencelaventure (ll/LatLng 48.51479 2.65053))
