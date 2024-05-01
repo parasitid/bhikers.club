@@ -57,3 +57,11 @@ This will generate the final APK in the `build/app/outputs/flutter-apk/` directo
    ```sh
    android-studio
    ```
+   
+   Then create an emulator and check it with `flutter doctor`.
+   
+   Once ready, you can run the app:
+   
+   ```
+   clj -M:cljd flutter -d emulator-5554
+   ```
