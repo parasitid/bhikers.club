@@ -25,7 +25,6 @@
                               "restaurants" "bakeries"
                               "bikeshops" "bottlerefills"])
 
-
 (defn drawer []
   (f/widget
    :get [m/Navigator]
@@ -217,6 +216,7 @@
         .fallbackLocale (m/Locale default-locale)
         .saveLocale true
         .useOnlyLangCode true
+        .useFallbackTranslations true
         .assetLoader (l10nassets/YamlAssetLoader)
         .path "src/resources/langs")
        (f/widget
