@@ -15,7 +15,6 @@
               subscribe-position-stream]]
             [cljd.flutter :as f]))
 
-
 (defn new-state []
   (let [map-state (atom {:selected-poi-type @selected-poi-type
                          :current-pos nil

@@ -83,10 +83,13 @@
 
 (defonce converters {
    "phone" phone-converter
+   "mobile" phone-converter
    "contact:phone" phone-converter
+   "contact:mobile" phone-converter
    "contact:email" email-converter
    "contact:website" website-converter
    "contact:facebook" website-converter
+   "contact:instagram" website-converter
    "email" email-converter
    "website" website-converter
    })
