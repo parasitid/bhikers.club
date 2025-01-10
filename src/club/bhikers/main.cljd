@@ -5,6 +5,7 @@
             ["package:latlong2/latlong.dart" :as ll]
             ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
             ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
+            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
             ["dart:async" :as dart-async]
             [cljd.flutter :as f]))
 
@@ -80,6 +81,7 @@
      [(map/TileLayer
        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
        .userAgentPackageName "club.bhikers"
+       .tileProvider (cmap/CancellableNetworkTileProvider)
        .maxZoom 19)
       (maploc/CurrentLocationLayer
        .alignPositionStream (.-stream align-position-stream-controller)
