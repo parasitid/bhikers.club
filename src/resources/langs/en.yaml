@@ -1,0 +1,21 @@
+app:
+  title: Bhikers Club
+settings:
+  emerengcy_contact_phone_number: Emerengcy Contact Phone Number
+  alert_mode: Alert mode
+  fall_detector_group_title: Fall detector
+  language: Language
+  common_group_title: Common
+  screen_title: Settings
+fall_detector:
+  screen_title: Fall Detector
+  description: Send alert to contacts if fall detected using accelerometer!
+enhance_gpx:
+  screen_title: Enhance Gpx
+  description: Enhance GPX trace with the POIs all along!
+around_me:
+  screen_title: Around me
+  description: POIs around my current GPS position
+about:
+  screen_title: About
+  description: Bhikers Club by ParaSitid

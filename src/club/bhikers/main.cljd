@@ -3,6 +3,8 @@
   (:require ["package:flutter/material.dart" :as m]
             ["package:flutter_map/flutter_map.dart" :as map]
             ["package:latlong2/latlong.dart" :as ll]
+            ["package:easy_localization/easy_localization.dart" :as l10n]
+            ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
             ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
             ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
             ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
@@ -21,9 +23,10 @@
 
 (defn drawer []
   (f/widget
+   :context ctx
    :get [m/Navigator]
    :let [drawer-routes [["/around-me"
-                         "Around Me"
+                         (l10n/tr "around_me.screen_title")
                          m/Icons.location_pin]
                         ["/enhance-gpx"
                          "Enhance GPX"
@@ -179,11 +182,27 @@
 (defn main []
   (do
     (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+    (m/WidgetsFlutterBinding.ensureInitialized)
+    (await (l10n/EasyLocalization.ensureInitialized))
     (f/run
-      (m/MaterialApp
-       .initialRoute "/around-me"
-       .theme theme
-       .routes (into {}
-                     (keep (fn [[k v]]
-                             {k (fn ^m/Widget k [_] v)}))
-                     routes)))))
+      (f/widget
+       (l10n/EasyLocalization
+        .supportedLocales [(m/Locale "en")
+                           (m/Locale "it")
+                           (m/Locale "fr")]
+        .fallbackLocale (m/Locale "en")
+        .saveLocale true
+        .useOnlyLangCode true
+        .assetLoader (l10nassets/YamlAssetLoader)
+        .path "src/resources/langs")
+       (f/widget
+        :context ctx
+        (m/MaterialApp
+         .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .localizationDelegates)
+         .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .supportedLocales)
+         .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .locale)
+         .initialRoute "/around-me"
+         .theme theme
+         .routes (into {}
+                       (keep (fn [[k v]] {k (fn ^m/Widget k [_] v)}))
+                       routes)))))))

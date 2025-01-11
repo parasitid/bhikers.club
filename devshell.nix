@@ -32,6 +32,7 @@ devshell.mkShell {
   ];
   packages = [
     emacs
+    yq
     android-sdk
     gradle
     jdk

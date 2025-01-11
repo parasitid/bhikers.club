@@ -51,3 +51,4 @@ lib/cljd-out/
 test/cljd-out/
 .lsp
 .clj-kondo/.cache/
+.direnv
