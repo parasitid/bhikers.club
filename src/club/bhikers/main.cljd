@@ -18,27 +18,26 @@
 ;;
 ;; *POIs: bhikers, boulangeries+resto, hotels+campings+spots, points d'eau
 
-(defonce map-state {:align-position-on-update maploc/AlignOnUpdate.always
-                    :align-position-stream-controller (dart-async/StreamController)})
+(defonce supported-locales ["en" "fr" "it" "es" "de"])
+(defonce default-locale "en")
 
 (defn drawer []
   (f/widget
-   :context ctx
    :get [m/Navigator]
    :let [drawer-routes [["/around-me"
                          (l10n/tr "around_me.screen_title")
                          m/Icons.location_pin]
                         ["/enhance-gpx"
-                         "Enhance GPX"
+                         (l10n/tr "enhance_gpx.screen_title")
                          m/Icons.hotel_class_outlined]
                         ["/fall-detector"
-                         "Fall detector"
+                         (l10n/tr "fall_detector.screen_title")
                          m/Icons.crisis_alert]
                         ["/settings"
-                         "Settings"
+                         (l10n/tr "settings.screen_title")
                          m/Icons.settings]
                         ["/about"
-                         "About"
+                         (l10n/tr "about.screen_title")
                          m/Icons.info]]]
    m/Drawer
    (m/ListView
@@ -59,7 +58,7 @@
                          drawer-routes)))))
 
 (defn app-bar []
-  (m/AppBar .title (m/Text "Bhikers Club")))
+  (m/AppBar .title (m/Text (l10n/tr "app.title"))))
 
 (defn around-me-screen []
   (m/Scaffold
@@ -110,7 +109,7 @@
    .drawer (drawer)
    .body (f/widget
           m/Center
-          (m/Text "Enhance GPX trace with the POIs all along!" .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+          (m/Text (l10n/tr "enhance_gpx.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
 (defn fall-detector-screen []
   (m/Scaffold
@@ -118,39 +117,44 @@
    .drawer (drawer)
    .body (f/widget
           m/Center
-          (m/Text "Send alert to contacts if fall detected using accelerometer!" .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+          (m/Text (l10n/tr "fall_detector.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
 (defn settings-screen []
   (m/Scaffold
    .appBar (app-bar)
    .drawer (drawer)
    .body (f/widget
+          :context ctx
           m/Container
           (settings/SettingsScreen
-           .title  "Settings"
+           .title  (l10n/tr "settings.screen_title")
            .children
            [(settings/SettingsGroup
-             .title  "Common"
+             .title  (l10n/tr "settings.general_group_title")
              .children
-             [(settings/SimpleDropDownSettingsTile
+             [(#/(settings/DropDownSettingsTile String)
                .leading (m/Icon m/Icons.language)
-               .settingKey "/common/language"
-               .title  "Language"
-               .values [ "English", "Français"]
-               .selected "Français"
-               .onChange #(m/debugPrint (str "selected lang " %)))])
+               .settingKey "/general/language"
+               .title  (l10n/tr "settings.language")
+               .values (into {} (map (fn [lang] [lang (l10n/tr (str "settings.langs." lang))])
+                                     supported-locales))
+               .selected default-locale
+               .onChange #(do (m/debugPrint (str "selected lang " %))
+                              (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
+                              nil))])
+
             (settings/SettingsGroup
-             .title  "Fall Detector"
+             .title  (l10n/tr "settings.fall_detector_group_title")
              .children
              [(settings/SwitchSettingsTile
                .leading (m/Icon m/Icons.crisis_alert)
                .settingKey "/fall-detector/alert-mode"
-               .title  "Alert mode"
+               .title (l10n/tr "settings.alert_mode")
                .onChange #(m/debugPrint (str "switched fall-detector-mode to " %))
                .childrenIfEnabled
                [(settings/TextInputSettingsTile
                  .settingKey "/fall-detector/emergency-contact-phone-number"
-                 .title  "Emerengcy Contact Phone Number"
+                 .title (l10n/tr "settings.emerengcy_contact_phone_number")
                  .validator #(do (m/debugPrint (str "phone number " %))
                                  nil)
                  .initialValue  "+33000000000")])])]))))
@@ -161,7 +165,7 @@
    .drawer (drawer)
    .body (f/widget
           m/Center
-          (m/Text "Bhikers Club by ParaSitid" .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
+          (m/Text (l10n/tr "about.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
 
 (def theme
   (m/ThemeData
@@ -172,12 +176,6 @@
                                  .fontWeight m/FontWeight.w700
                                  .fontSize 24
                                  .color m/Colors.black))))
-(def routes
-  {"/around-me" (around-me-screen)
-   "/enhance-gpx" (enhance-gpx-screen)
-   "/fall-detector" (fall-detector-screen)
-   "/settings" (settings-screen)
-   "/about" (about-screen)})
 
 (defn main []
   (do
@@ -187,10 +185,8 @@
     (f/run
       (f/widget
        (l10n/EasyLocalization
-        .supportedLocales [(m/Locale "en")
-                           (m/Locale "it")
-                           (m/Locale "fr")]
-        .fallbackLocale (m/Locale "en")
+        .supportedLocales (map #(m/Locale %) supported-locales)
+        .fallbackLocale (m/Locale default-locale)
         .saveLocale true
         .useOnlyLangCode true
         .assetLoader (l10nassets/YamlAssetLoader)
@@ -204,5 +200,9 @@
          .initialRoute "/around-me"
          .theme theme
          .routes (into {}
-                       (keep (fn [[k v]] {k (fn ^m/Widget k [_] v)}))
-                       routes)))))))
+                       (keep (fn [[k v]] {k (fn ^m/Widget k [_] (v))}))
+                       {"/around-me" around-me-screen
+                        "/enhance-gpx" enhance-gpx-screen
+                        "/fall-detector" fall-detector-screen
+                        "/settings" settings-screen
+                        "/about" about-screen})))))))

@@ -1,0 +1,27 @@
+app:
+  title: Bhikers Club
+settings:
+  emerengcy_contact_phone_number: Numero di telefono del contatto di emergenza
+  alert_mode: Modalità di allarme
+  fall_detector_group_title: Rilevatore di caduta
+  language: Lingua
+  general_group_title: Generale
+  screen_title: Impostazioni
+  langs:
+    en: Inglese
+    fr: Francese
+    de: Tedesco
+    it: Italiano
+    es: Spagnolo
+fall_detector:
+  screen_title: Rilevatore di caduta
+  description: Invia un avviso ai contatti se viene rilevata una caduta con l'accelerometro!
+enhance_gpx:
+  screen_title: Migliora GPX
+  description: Migliora la traccia GPX con i POI lungo il percorso!
+around_me:
+  screen_title: Intorno a me
+  description: Punti di interesse intorno alla mia posizione GPS attuale
+about:
+  screen_title: Informazioni
+  description: Bhikers Club di ParaSitid
