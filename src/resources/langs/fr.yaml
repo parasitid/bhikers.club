@@ -2,7 +2,7 @@ app:
   title: Bhikers Club
 settings:
   emerengcy_contact_phone_number: Numéro de téléphone du contact d'urgence
-  alert_mode: Mode d'alerte
+  alert_mode: Mode alerte
   fall_detector_group_title: Détecteur de chute
   language: Langue
   general_group_title: Général
@@ -22,6 +22,16 @@ enhance_gpx:
 around_me:
   screen_title: Autour de moi
   description: Points d'intérêt autour de ma position GPS actuelle
+  poi_types:
+    bhikers: Bhikers
+    shelters: Abris
+    hotels: Hôtels
+    campsites: Campings
+    restaurants: Restaurants
+    bottlerefills: Recharges de bouteilles
+    bakeries: Boulangeries
+    bikeshops: Magasins de vélos
+
 about:
   screen_title: À propos
   description: Bhikers Club par ParaSitid
