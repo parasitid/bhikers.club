@@ -31,6 +31,24 @@ around_me:
     bottlerefills: Bottle refills
     bakeries: Bakeries
     bikeshops: Bike shops
+  pois:
+    bhikers: "@:common.bhiker_emoji @:around_me.poi_types.bhikers"
+    shelters: "@:common.shelter_emoji @:around_me.poi_types.shelters"
+    hotels: "@:common.hotel_emoji @:around_me.poi_types.hotels"
+    campsites: "@:common.campsite_emoji @:around_me.poi_types.campsites"
+    restaurants: "@:common.restaurant_emoji @:around_me.poi_types.restaurants"
+    bottlerefills: "@:common.bottlerefill_emoji @:around_me.poi_types.bottlerefills"
+    bakeries: "@:common.bakery_emoji @:around_me.poi_types.bakeries"
+    bikeshops: "@:common.bikeshop_emoji @:around_me.poi_types.bikeshops"
 about:
   screen_title: About
   description: Bhikers Club by ParaSitid
+common:
+  bhiker_emoji: 🚴
+  shelter_emoji: ☔
+  hotel_emoji: 🏨
+  campsite_emoji: ⛺
+  restaurant_emoji: 🍽️
+  bottlerefill_emoji: 🚰
+  bakery_emoji: 🥪
+  bikeshop_emoji: 🔧
