@@ -1,4 +1,4 @@
-package com.example.cljd_bhikers
+package club.bhikers
 
 import io.flutter.embedding.android.FlutterActivity
 
