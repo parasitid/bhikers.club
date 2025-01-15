@@ -315,11 +315,11 @@
   (m/ThemeData
    .colorSchemeSeed m/Colors.blue
    .useMaterial3 true
-   .textTheme (m/TextTheme)
-              .displayLarge (m/TextStyle
+   .textTheme (m/TextTheme
+               .displayLarge (m/TextStyle
                               .fontWeight m/FontWeight.w700
                               .fontSize 24
-                              .color m/Colors.black)))
+                              .color m/Colors.black))))
 
 ;; Main:
 ;; init settings, localizqtion
