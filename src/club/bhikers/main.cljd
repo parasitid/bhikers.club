@@ -1,6 +1,7 @@
 (ns club.bhikers.main
   "Bhikers Club App by ParaSitid"
   (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter/foundation.dart" :as foundation]
             ["package:flutter_map/flutter_map.dart" :as map]
             ["package:latlong2/latlong.dart" :as ll]
             ["package:uuid/uuid.dart" :as uuid]
@@ -11,7 +12,9 @@
             ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
             ["package:dio/dio.dart" :as dio]
             ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
+            ["package:permission_handler/permission_handler.dart" :as perms]
             ["dart:async" :as async]
+            ["dart:io" :as io]
             ["package:geolocator/geolocator.dart" :as geo]
             ["dart:convert" :as c]
             [cljd.flutter :as f]))
@@ -21,7 +24,14 @@
 ;; Fall Detector Alert: use accelerometer to detect fall or no movement
 ;; Settings: avatar, sms/signal/telegram accounts to send alerts
 ;;
-;; *POIs: bhikers, boulangeries+resto, hotels+campings+spots, points d'eau
+;; *POIs: bhikers, bakeries+resto, hotels+campings+spots, foutains for bottle refills
+
+
+;; logging setup
+(defonce debug-mode (atom true))
+(defn log [& args]
+  (when (or @debug-mode foundation/kDebugMode)
+    (m/debugPrint (apply str (into [(DateTime/now) " [club.bhikers]: "] args)))))
 
 ;; Setup default values
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
@@ -46,45 +56,26 @@
 
 (defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
 
-;; geolocator
-(defn check-permissions []
-  (-> (.checkPermission geo/Geolocator)
-      (.then (fn [permission-status]
-               (if (or (= permission-status geo/LocationPermission.denied)
-                       (= permission-status geo/LocationPermission.deniedForever))
-                 (.requestPermission geo/Geolocator)
-                 permission-status)))))
-
-(defn start-position-stream ^#/(async/StreamSubscription geo/Position) [listener]
-  (do
-    (check-permissions)
-    (let [settings (geo/LocationSettings .accuracy geo/LocationAccuracy.high
-                                         .distanceFilter 1000  ;; Update for every 1km...
-                                         .timeLimit (dart:core/Duration .minutes 30))  ;; ... or for every 30minutes
-          stream (.getPositionStream geo/Geolocator .locationSettings settings)]
-      (.listen stream
-               (fn [^geo/Position position]
-                 (listener (.-latitude position)
-                           (.-longitude position)))))))
-
 ;; Setup dio instance with cache+log interceptors for overpass-api.de
+;; dio is a lib for http requests
 (defonce uuidgen (atom (uuid/Uuid)))
 
 (defn create-cache-store ^cache/MemCacheStore [max-nb-of-entries max-entry-size]
   (cache/MemCacheStore .maxSize (* max-nb-of-entries max-entry-size) .maxEntrySize max-entry-size))
 
 (defn create-dio-instance ^dio/Dio [base-url cache-store]
+  (log "create dio instance for url " base-url)
   (let [api (dio/Dio
              (dio/BaseOptions .baseUrl base-url
-                              .connectTimeout (dart:core/Duration .seconds 5)
-                              .receiveTimeout (dart:core/Duration .seconds 5)))]
+                              .connectTimeout (Duration .seconds 5)
+                              .receiveTimeout (Duration .seconds 5)))]
     (doto (.-interceptors api)
       (.add (cache/DioCacheInterceptor
              .options (cache/CacheOptions
                        .store cache-store
                        .policy cache/CachePolicy.forceCache
                        .hitCacheOnErrorExcept [401 403]
-                       .maxStale (dart:core/Duration .days 1)
+                       .maxStale (Duration .days 1)
                        .priority cache/CachePriority.normal
                        .allowPostMethod false
                        .keyBuilder (fn [^dio/RequestOptions req-opts]
@@ -118,7 +109,7 @@
                          m/Icons.info]]]
    m/Drawer
    (m/ListView
-    .padding (m/EdgeInsets.all 20)
+    .padding (m/EdgeInsets.all 5)
     .children (into [(m/UserAccountsDrawerHeader
                       .accountName (m/Text "John Doe")
                       .accountEmail (m/Text "johndoe@example.com")
@@ -147,91 +138,138 @@
    :watch [{:keys [selected-poi-type]} map-state]
    m/Drawer
    (m/ListView
-    .padding (m/EdgeInsets.all 20)
+    .padding (m/EdgeInsets.all 5)
     .children
     (map (fn [poi] (m/RadioListTile
                     .title (m/Text (l10n/tr (str "around_me.pois." poi)))
                     .value poi
                     .groupValue selected-poi-type
                     .onChanged (fn [val]
+                                 (log "changed poi type to " val)
                                  (swap! map-state assoc :selected-poi-type val)
                                  (.pop navigator))))
          supported-poi-types))))
 
 ;; get and extract json data from overpass-api-de
-(defn around-me-pois-markers [selected-poi-type [lat lon] radius]
-  (let [osm-tag (poi-type->osm-tag selected-poi-type)
-        query (str "data=[out:json];node[" osm-tag "](around:" radius "," lat "," lon ");out;")]
-    (m/debugPrint (str "Will request overpass-api.de with " query))
-    (f/widget
-     :get [:overpass-api]
-     :watch [response (try (await (.get ^dio/Dio overpass-api query))
-                           (catch dio/DioException e false))]
-     (if response
-       (let [{data .-data} ^dio/Response response
-             elements (get data "elements" [])]
-         (map/MarkerLayer .markers (map #(map/Marker .point (ll/LatLng (get % "lat")
-                                                                       (get % "lon"))
-                                                     .height 12
-                                                     .width 12
-                                                     .child (m/ColoredBox .color m/Colors.blue))
-                                        elements)))
-       (m/Container)))))
+(defn around-me-pois-markers-widget [radius]
+  (f/widget
+   :get [:overpass-api :map-state]
+   :watch [{:keys [selected-poi-type current-pos]} map-state
+           response (if (not current-pos)
+                      (do (log "current-pos is still unknown...") nil)
+                      (let [[lat lon] current-pos
+                            osm-tag (poi-type->osm-tag selected-poi-type)
+                            query (str "data=[out:json];node[" osm-tag "](around:" radius "," lat "," lon ");out;")]
+                        (try
+                          (log "Will request overpass-api.de with " query)
+                          (await (.get ^dio/Dio overpass-api query))
+                          (catch dio/DioException e
+                            (do (log "Exception! " e)
+                                nil)))))]
+   (if response
+     (let [{data .-data} ^dio/Response response
+           elements (get data "elements" [])]
+       (log "elements fetched: " elements)
+       (map/MarkerLayer .markers (map #(map/Marker .point (ll/LatLng (get % "lat")
+                                                                     (get % "lon"))
+                                                   .height 12
+                                                   .width 12
+                                                   .child (m/ColoredBox .color m/Colors.blue))
+                                      elements)))
+     (m/Container))))
 
 ;; Setup around me main screen with Flutter Map,
 ;; centered on device's current position
 ;; with markers representing selected POIs in a certain radius
 ;; around current position
+
+;; per device type location settings
+(defn location-settings []
+  (let[distance-filter 5000]               ; Update position every 5km...
+    (cond
+      ;; kIsWeb must be checked first because platform on web is throwing errors
+      foundation/kIsWeb (geo/LocationSettings .accuracy geo/LocationAccuracy.high
+                                              .distanceFilter distance-filter)
+      (io/Platform.isAndroid) (geo/AndroidSettings .accuracy geo/LocationAccuracy.high
+                                                   .intervalDuration (Duration .hours 1)
+                                                   .distanceFilter distance-filter
+                                                   .forceLocationManager true)
+      (io/Platform.isIOS) (geo/AppleSettings .accuracy geo/LocationAccuracy.high
+                                             .pauseLocationUpdatesAutomatically true
+                                             .distanceFilter distance-filter)
+      :else (geo/LocationSettings .accuracy geo/LocationAccuracy.high
+                                  .distanceFilter distance-filter))))
+
+;; position stream helpers / not used
+(defn start-position-stream ^#/(async/Stream geo/Position) []
+  (log "start position stream")
+  (-> geo/Geolocator (.getPositionStream .locationSettings (location-settings))))
+
+(defn subscribe-position-stream ^#/(async/StreamSubscription geo/Position) [^#/(async/Stream geo/Position) stream listener]
+  (log "subsbribe to position stream")
+  (.listen stream (fn [^geo/Position position]
+                    (log "new position fetched: " position)
+                    (listener (.-latitude position)
+                              (.-longitude position)))))
+
+(defn update-map-state-position! [map-state]
+  (let [{:keys [current-pos]} map-state
+        new-pos (or (await (.getLastKnownPosition geo/Geolocator))
+                    (await
+                     (-> geo/Geolocator (.getCurrentPosition .locationSettings (location-settings)))))]
+    (swap! map-state assoc :current-pos [(.-latitude  new-pos)
+                                         (.-longitude new-pos)])))
+
+
+;; retreiving current position logic is:
+;; - init with last known position; when null, get current position
+;; - when my_location button is tapped, get current position
 (defn around-me-screen []
   (f/widget
-   :let [map-state (atom {:selected-poi-type default-poi-type
-                          :current-pos false})]
-   :bind {:map-state map-state}
-   :managed [position-stream (start-position-stream
-                              (fn [lat lon]
-                                (swap! map-state assoc :current-pos [lat lon])))
-             :dispose .cancel]
-   :watch [{:keys [selected-poi-type current-pos]} map-state]
+   :bind {:map-state (atom {:selected-poi-type default-poi-type
+                            :current-pos false
+                            :align-position-on-update maploc/AlignOnUpdate.always})}
+   :get [:map-state]
+   :managed [align-position-stream-controller (#/(async/StreamController double?))
+             :dispose .close]
+   :watch [{:keys [current-pos]} (update-map-state-position! map-state)
+           {:keys [selected-poi-type align-position-on-update]} map-state]
    (m/Scaffold
     .appBar (app-bar)
     .drawer (drawer)
     .endDrawer (around-me-enddrawer)
     .body
-    (f/widget
-     :managed [align-position-stream-controller (#/(async/StreamController double?))
-               :dispose .close]
-     :watch [align-position-on-update (atom maploc/AlignOnUpdate.always) :as *align-position-on-update]
-     (map/FlutterMap
-      .options (map/MapOptions
-                .initialZoom 12
-                .minZoom 0
-                .maxZoom 18
-                .onPositionChanged (fn [camera hasGesture]
-                                     (when (and hasGesture
-                                                (not= align-position-on-update maploc/AlignOnUpdate.never))
-                                       (reset! *align-position-on-update maploc/AlignOnUpdate.never))))
-      .children
-      (into [(map/TileLayer
-              .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-              .userAgentPackageName "club.bhikers"
-              .tileProvider (cmap/CancellableNetworkTileProvider)
-              .maxZoom 19)
-             (maploc/CurrentLocationLayer
-              .alignPositionStream (.-stream align-position-stream-controller)
-              .alignPositionOnUpdate align-position-on-update)
-             (m/Align
-              .alignment m/Alignment.bottomRight
-              .child (m/Padding .padding (m/EdgeInsets.all 20.0)
-                                .child (m/FloatingActionButton
-                                        .onPressed (fn [] (do
-                                                            (reset! *align-position-on-update maploc/AlignOnUpdate.never)
-                                                            (.add align-position-stream-controller 12)))
-                                        .child (m/Icon m/Icons.my_location .color m/Colors.white))))
-             (map/Scalebar
-              .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
-              .alignment m/Alignment.bottomLeft
-              .length map/ScalebarLength.m)]
-            (when current-pos [(around-me-pois-markers selected-poi-type current-pos 5000)])))))))
+    (map/FlutterMap
+     .options (map/MapOptions
+               .initialZoom 12
+               .minZoom 0
+               .maxZoom 18
+               .onPositionChanged (fn [camera hasGesture]
+                                    (when (and hasGesture
+                                               (not= align-position-on-update maploc/AlignOnUpdate.never))
+                                      (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never))))
+     .children
+      [(map/TileLayer
+        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        .userAgentPackageName "club.bhikers"
+        .tileProvider (cmap/CancellableNetworkTileProvider)
+        .maxZoom 19)
+       (maploc/CurrentLocationLayer
+        .alignPositionStream (.-stream align-position-stream-controller)
+        .alignPositionOnUpdate align-position-on-update)
+       (m/Align
+        .alignment m/Alignment.bottomRight
+        .child (m/Padding .padding (m/EdgeInsets.all 5.0)
+                          .child (m/FloatingActionButton
+                                  .onPressed (fn [] (do
+                                                      (.add align-position-stream-controller 12)
+                                                      (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never)))
+                                  .child (m/Icon m/Icons.my_location .color m/Colors.white))))
+       (map/Scalebar
+        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+        .alignment m/Alignment.bottomLeft
+        .length map/ScalebarLength.m)
+       (around-me-pois-markers-widget 5000)]))))
 
 
 ;; Setup enhance gpx screen
@@ -280,8 +318,7 @@
                  .values (into {} (map (fn [lang] [lang (l10n/tr (str "settings.langs." lang))])
                                        supported-locales))
                  .selected default-locale
-                 .onChange #(do (m/debugPrint (str "selected lang " %))
-                                (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
+                 .onChange #(do (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
                                 nil))])
 
             (settings/SettingsGroup
@@ -291,12 +328,12 @@
                .leading (m/Icon m/Icons.crisis_alert)
                .settingKey "/fall-detector/alert-mode"
                .title (l10n/tr "settings.alert_mode")
-               .onChange #(m/debugPrint (str "switched fall-detector-mode to " %))
+               .onChange #(log "switched fall-detector-mode to " %)
                .childrenIfEnabled
                [(settings/TextInputSettingsTile
                  .settingKey "/fall-detector/emergency-contact-phone-number"
                  .title (l10n/tr "settings.emerengcy_contact_phone_number")
-                 .validator #(do (m/debugPrint (str "phone number " %))
+                 .validator #(do (log "phone number " %)
                                  nil)
                  .initialValue  "+33000000000")])])]))))
 
@@ -321,14 +358,51 @@
                               .fontSize 24
                               .color m/Colors.black))))
 
+;; permissions helpers
+;;
+(defn permission-request [permission granted-fn]
+  (log "requesting permission " permission)
+  (let [status (await (-> permission perms/PermissionActions (.request)))]
+    (cond
+      (== perms/PermissionStatus.granted status) (granted-fn)
+      (== perms/PermissionStatus.denied status) (permission-request permission granted-fn)
+      (== perms/PermissionStatus.permanentlyDenied status) (perms/openAppSettings)
+      :else (log "permission status " status " unsupported. ignoring."))))
+
+(defn check-permission [permission granted-fn]
+  (log "checking permission " permission)
+  (let [status (await (-> permission perms/PermissionActions (.-status)))]
+    (cond
+      (== perms/PermissionStatus.granted status) (do
+                                                   (log "check granted for " permission)
+                                                   (granted-fn))
+      (== perms/PermissionStatus.denied status) (do
+                                                   (log "check denied for " permission)
+                                                  (await (permission-request permission granted-fn)))
+      (== perms/PermissionStatus.permanentlyDenied status) (do
+                                                             (log "check permanently denied for " permission)
+                                                             (perms/openAppSettings))
+      :else (log "permission status " status " unsupported. ignoring?"))))
+
+
+
 ;; Main:
 ;; init settings, localizqtion
 ;; run MaterialApp with default screen "Around Me"
 (defn main []
   (do
+    ;; careful: order matters
+    (log "init settings with shared preference cache provider")
     (settings/Settings.init .cacheProvider (settings/SharePreferenceCache))
+    (log "init flutter bindings")
     (m/WidgetsFlutterBinding.ensureInitialized)
+    (log "init easy l10n")
     (await (l10n/EasyLocalization.ensureInitialized))
+    (log "wait for permissions")
+    (await (check-permission (if (and (not foundation/kIsWeb) io/Platform.isAndroid)
+                               perms/Permission.locationWhenInUse
+                               perms/Permission.location)
+                             #(log "location perm granted!")))
     (f/run
       (f/widget
        (l10n/EasyLocalization

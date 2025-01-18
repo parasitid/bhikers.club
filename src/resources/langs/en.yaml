@@ -22,6 +22,7 @@ enhance_gpx:
 around_me:
   screen_title: Around me
   description: POIs around my current GPS position
+  no_permission: Please grant Location permission
   poi_types:
     bhikers: Bhikers
     shelters: Shelters
