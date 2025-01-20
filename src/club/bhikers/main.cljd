@@ -1,23 +1,25 @@
 (ns club.bhikers.main
   "Bhikers Club App by ParaSitid"
   (:require ["package:flutter/material.dart" :as m]
-            ["package:flutter/foundation.dart" :as foundation]
-            ["package:flutter_map/flutter_map.dart" :as map]
-            ["package:latlong2/latlong.dart" :as ll]
-            ["package:uuid/uuid.dart" :as uuid]
-            ["package:easy_localization/easy_localization.dart" :as l10n]
-            ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
-            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
-            ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
-            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
-            ["package:dio/dio.dart" :as dio]
-            ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
-            ["package:permission_handler/permission_handler.dart" :as perms]
-            ["dart:async" :as async]
-            ["dart:io" :as io]
-            ["package:geolocator/geolocator.dart" :as geo]
-            ["dart:convert" :as c]
-            [cljd.flutter :as f]))
+           ["package:flutter/foundation.dart" :as foundation]
+           ["package:flutter_map/flutter_map.dart" :as map]
+           ["package:latlong2/latlong.dart" :as ll]
+           ["package:uuid/uuid.dart" :as uuid]
+           ["package:easy_localization/easy_localization.dart" :as l10n]
+           ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
+           ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
+           ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
+           ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
+           ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
+           ["package:dio/dio.dart" :as dio]
+           ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
+           ["package:permission_handler/permission_handler.dart" :as perms]
+           ["dart:async" :as async]
+           ["dart:io" :as io]
+           ["package:geolocator/geolocator.dart" :as geo]
+           ["dart:convert" :as c]
+           [club.bhikers.maps.controlbuttons :as mcb]
+           [cljd.flutter :as f]))
 
 ;; Around me ( +/- 10/20km): POIs*
 ;; Enhance GPX: upload gpx and add POIs*
@@ -25,7 +27,6 @@
 ;; Settings: avatar, sms/signal/telegram accounts to send alerts
 ;;
 ;; *POIs: bhikers, bakeries+resto, hotels+campings+spots, foutains for bottle refills
-
 
 ;; logging setup
 (defonce debug-mode (atom true))
@@ -43,7 +44,8 @@
                               "restaurants"
                               "bakeries"
                               "bikeshops"
-                              "bottlerefills"])
+                              "bottlerefills"
+                              "toilets"])
 
 (defonce poi-types->osm-tags {"shelters" "amenity=shelter"
                               "hotels" "tourism=hotel"
@@ -51,7 +53,8 @@
                               "restaurants" "amenity=restaurant"
                               "bakeries" "shop=bakery"
                               "bikeshops" "shop=bicycle"
-                              "bottlerefills" "fountain=bottle_refill"})
+                              "bottlerefills" "fountain=bottle_refill"
+                              "toilets" "amenity=toilets"})
 (defonce default-poi-type "shelters")
 
 (defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
@@ -91,7 +94,8 @@
 ;; Setup main drawer with app routes
 (defn drawer []
   (f/widget
-   :get [m/Navigator]
+   :get [m/Navigator
+         m/Theme]
    :let [drawer-routes [["/around-me"
                          (l10n/tr "around_me.screen_title")
                          m/Icons.location_pin]
@@ -103,27 +107,34 @@
                          m/Icons.crisis_alert]
                         ["/settings"
                          (l10n/tr "settings.screen_title")
-                         m/Icons.settings]
-                        ["/about"
-                         (l10n/tr "about.screen_title")
-                         m/Icons.info]]]
+                         m/Icons.settings]]]
    m/Drawer
    (m/ListView
-    .padding (m/EdgeInsets.all 5)
-    .children (into [(m/UserAccountsDrawerHeader
-                      .accountName (m/Text "John Doe")
-                      .accountEmail (m/Text "johndoe@example.com")
-                      .currentAccountPicture (m/CircleAvatar .child (m/Text "JD")))]
-                    (map (fn [[route title icon]]
-                           (m/ListTile
-                            .leading (m/Icon icon)
-                            .title (m/Text title)
-                            .onTap
-                            (fn []
-                              (.pop navigator)
-                              (.pushNamed navigator route)
-                              nil)))
-                         drawer-routes)))))
+    .padding (m/EdgeInsets.all 2.0)
+    .children (concat
+               [(m/UserAccountsDrawerHeader
+                 .accountName (m/Text "John Doe")
+                 .accountEmail (m/Text "johndoe@example.com")
+                 .currentAccountPicture (m/CircleAvatar .child (m/Text "JD")))]
+               (map (fn [[route title icon]]
+                      (m/ListTile
+                       .leading (m/Icon icon)
+                       .title (m/Text title)
+                       .onTap
+                       (fn []
+                         (.pop navigator)
+                         (.pushNamed navigator route)
+                         nil)))
+                    drawer-routes)
+               [(m/AboutListTile
+                 .icon (m/Icon m/Icons.info)
+                 .applicationIcon nil
+                 .applicationName (l10n/tr "app.title")
+                 .applicationVersion "v0"
+                 .applicationLegalese (l10n/tr "about.legalese")
+                 .aboutBoxChildren [(m/SizedBox .height 24)
+                                    (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)
+                                                                  .text (l10n/tr "about.description")))])]))))
 
 (defn app-bar []
   (m/AppBar .title (m/Text (l10n/tr "app.title"))))
@@ -138,7 +149,7 @@
    :watch [{:keys [selected-poi-type]} map-state]
    m/Drawer
    (m/ListView
-    .padding (m/EdgeInsets.all 5)
+    .padding (m/EdgeInsets.all 2.0)
     .children
     (map (fn [poi] (m/RadioListTile
                     .title (m/Text (l10n/tr (str "around_me.pois." poi)))
@@ -150,9 +161,27 @@
                                  (.pop navigator))))
          supported-poi-types))))
 
-;; get and extract json data from overpass-api-de
+;; modal bottom sheet displaying info about a POI
+(defn around-me-show-poi-info [ctx poi]
+  (m/showModalBottomSheet
+   .context ctx
+   .builder (f/build
+             (f/widget
+              (m/Container .height 300)
+              (m/ListView .children (map (fn [[name value]]
+                                           (m/ListTile
+                                            .subtitle (m/Text (l10n/tr name))
+                                            .title (m/Text value)))
+                                         (get poi "tags" {})))))))
+
+;; widget for POI markers on map
+;; - watch map-state current position & selected poi type
+;; - get and extract json data from overpass-api-de accordingly
+;; - return a widget of markers for each element returned
+;; - if no response or error, return empty widget
 (defn around-me-pois-markers-widget [radius]
   (f/widget
+   :context ctx
    :get [:overpass-api :map-state]
    :watch [{:keys [selected-poi-type current-pos]} map-state
            response (if (not current-pos)
@@ -172,9 +201,12 @@
        (log "elements fetched: " elements)
        (map/MarkerLayer .markers (map #(map/Marker .point (ll/LatLng (get % "lat")
                                                                      (get % "lon"))
-                                                   .height 12
-                                                   .width 12
-                                                   .child (m/ColoredBox .color m/Colors.blue))
+                                                   .height 40
+                                                   .width 40
+                                                   .child (m/GestureDetector
+                                                           .onTap (fn [] (around-me-show-poi-info ctx %))
+                                                           .child (m/Icon m/Icons.location_pin
+                                                                          .size 40)))
                                       elements)))
      (m/Container))))
 
@@ -200,38 +232,30 @@
       :else (geo/LocationSettings .accuracy geo/LocationAccuracy.high
                                   .distanceFilter distance-filter))))
 
-;; position stream helpers / not used
-(defn start-position-stream ^#/(async/Stream geo/Position) []
-  (log "start position stream")
-  (-> geo/Geolocator (.getPositionStream .locationSettings (location-settings))))
-
-(defn subscribe-position-stream ^#/(async/StreamSubscription geo/Position) [^#/(async/Stream geo/Position) stream listener]
-  (log "subsbribe to position stream")
-  (.listen stream (fn [^geo/Position position]
-                    (log "new position fetched: " position)
-                    (listener (.-latitude position)
-                              (.-longitude position)))))
-
+;; update map state with last known's device position or current position
+;; if last position is not yet known
 (defn update-map-state-position! [map-state]
-  (let [{:keys [current-pos]} map-state
-        new-pos (or (await (.getLastKnownPosition geo/Geolocator))
-                    (await
-                     (-> geo/Geolocator (.getCurrentPosition .locationSettings (location-settings)))))]
+  (let [new-pos (or (await (-> geo/Geolocator (.getLastKnownPosition)))
+                    (await (-> geo/Geolocator (.getCurrentPosition .locationSettings (location-settings)))))]
     (swap! map-state assoc :current-pos [(.-latitude  new-pos)
                                          (.-longitude new-pos)])))
 
-
-;; retreiving current position logic is:
-;; - init with last known position; when null, get current position
-;; - when my_location button is tapped, get current position
+;; around me main screen
+;; a map with
+;; - current position marker centered
+;; - my location button to recenter map on current position
+;; - a scalebar
+;; - markers for selected pois in a 5km radius around current
+;; position
 (defn around-me-screen []
   (f/widget
-   :bind {:map-state (atom {:selected-poi-type default-poi-type
+   :managed [align-position-stream-controller (#/(async/StreamController double?))
+             :dispose .close]
+   :bind {:align-position-stream-controller (atom align-position-stream-controller)
+          :map-state (atom {:selected-poi-type default-poi-type
                             :current-pos false
                             :align-position-on-update maploc/AlignOnUpdate.always})}
    :get [:map-state]
-   :managed [align-position-stream-controller (#/(async/StreamController double?))
-             :dispose .close]
    :watch [{:keys [current-pos]} (update-map-state-position! map-state)
            {:keys [selected-poi-type align-position-on-update]} map-state]
    (m/Scaffold
@@ -249,27 +273,21 @@
                                                (not= align-position-on-update maploc/AlignOnUpdate.never))
                                       (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never))))
      .children
-      [(map/TileLayer
-        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        .userAgentPackageName "club.bhikers"
-        .tileProvider (cmap/CancellableNetworkTileProvider)
-        .maxZoom 19)
-       (maploc/CurrentLocationLayer
-        .alignPositionStream (.-stream align-position-stream-controller)
-        .alignPositionOnUpdate align-position-on-update)
-       (m/Align
-        .alignment m/Alignment.bottomRight
-        .child (m/Padding .padding (m/EdgeInsets.all 5.0)
-                          .child (m/FloatingActionButton
-                                  .onPressed (fn [] (do
-                                                      (.add align-position-stream-controller 12)
-                                                      (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never)))
-                                  .child (m/Icon m/Icons.my_location .color m/Colors.white))))
-       (map/Scalebar
-        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
-        .alignment m/Alignment.bottomLeft
-        .length map/ScalebarLength.m)
-       (around-me-pois-markers-widget 5000)]))))
+     [(map/TileLayer
+       .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+       .userAgentPackageName "club.bhikers"
+       .tileProvider (cmap/CancellableNetworkTileProvider)
+       .maxZoom 18)
+      (around-me-pois-markers-widget 5000)
+      (maploc/CurrentLocationLayer
+       .alignPositionStream (.-stream align-position-stream-controller)
+       .alignPositionOnUpdate align-position-on-update)
+      (mcb/control-buttons :alignment m/Alignment.bottomRight)
+      (map/Scalebar
+       .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+       .alignment m/Alignment.bottomLeft
+       .length map/ScalebarLength.m)
+      (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)]))))
 
 
 ;; Setup enhance gpx screen
@@ -338,25 +356,22 @@
                  .initialValue  "+33000000000")])])]))))
 
 
-;; Setup about screen app
-(defn about-screen []
-  (m/Scaffold
-   .appBar (app-bar)
-   .drawer (drawer)
-   .body (f/widget
-          m/Center
-          (m/Text (l10n/tr "about.description") .style (m/TextStyle .color m.Colors/red .fontSize 32.0)))))
-
 ;; Setup Theme of the material app
 (def theme
-  (m/ThemeData
-   .colorSchemeSeed m/Colors.blue
-   .useMaterial3 true
-   .textTheme (m/TextTheme
-               .displayLarge (m/TextStyle
-                              .fontWeight m/FontWeight.w700
-                              .fontSize 24
-                              .color m/Colors.black))))
+  (let [color-scheme (m/ColorScheme.fromSeed .seedColor m/Colors.blue
+                                             .brightness m/Brightness.light
+                                             .contrastLevel -0.5)]
+    (m/ThemeData
+     .colorScheme color-scheme
+     .floatingActionButtonTheme (m/FloatingActionButtonThemeData
+                                 .backgroundColor (.-tertiary color-scheme)
+                                 .foregroundColor (.-onTertiary color-scheme))
+     .useMaterial3 true
+     .textTheme (m/TextTheme
+                 .displayLarge (m/TextStyle
+                                .fontWeight m/FontWeight.w700
+                                .fontSize 24
+                                .color m/Colors.black)))))
 
 ;; permissions helpers
 ;;
@@ -430,5 +445,4 @@
                        {"/around-me" around-me-screen
                         "/enhance-gpx" enhance-gpx-screen
                         "/fall-detector" fall-detector-screen
-                        "/settings" settings-screen
-                        "/about" about-screen})))))))
+                        "/settings" settings-screen})))))))

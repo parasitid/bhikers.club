@@ -1,0 +1,39 @@
+#+title: Roadmap
+
+* App features
+** global ui
+*** TODO setup icon
+** Around me
+*** TODO clusters of POI markers
+*** TODO add radius slider
+*** TODO better end drawer for filters
+*** DONE add compass rotation icon on map
+*** DONE add popup on poi markers with info
+*** TODO share poi with nav app (waze/geovelo/komoot/...)
+*** DONE add public WC POI
+*** TODO add recommandation on POI (setup api backend)
+*** TODO add cache for tiles
+*** DONE add zoom buttons
+** Settings
+*** TODO setup around me defaults in settings
+** About
+*** TODO make credits page
+*** TODO insert frugal app manifesto
+*** TODO insert bhikers club good fellow
+** user management
+*** TODO associate id with device in backend api
+
+* App release
+** CICD
+*** TODO automate build, release and publish android app on github
+*** TODO automate build, release and publish android app on ?store?
+*** TODO automate build, release and publish ios app on ?store?
+** TODO choose license
+
+* Development
+
+* Others
+** Frugal App Manifesto
+*** TODO write v0
+** The Bhikers Club Good Fellow
+*** TODO write v0
