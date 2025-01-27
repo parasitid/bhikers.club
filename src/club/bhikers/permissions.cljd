@@ -1,0 +1,43 @@
+(ns club.bhikers.permissions
+  (:require
+   ["package:permission_handler/permission_handler.dart" :as perms]
+   ["package:easy_localization/easy_localization.dart" :as l10n]
+   ["package:flutter/foundation.dart" :as foundation]
+   ["dart:io" :as io]
+   [club.bhikers.notifications :refer [new-notif]]
+   [club.bhikers.utils :refer [log]]))
+
+;; permissions helpers
+;;
+(defn permission-request [permission granted-fn]
+  (log "requesting permission " permission)
+  (let [status (await (-> permission perms/PermissionActions (.request)))]
+    (cond
+      (== perms/PermissionStatus.granted status) (granted-fn)
+      (== perms/PermissionStatus.denied status) (permission-request permission granted-fn)
+      (== perms/PermissionStatus.permanentlyDenied status) (perms/openAppSettings)
+      :else (log "permission status " status " unsupported. ignoring."))))
+
+(defn check-permission [permission granted-fn]
+  (log "checking permission " permission)
+  (let [status (await (-> permission perms/PermissionActions (.-status)))]
+    (cond
+      (== perms/PermissionStatus.granted status)
+      (do
+        (log "check granted for " permission)
+        (granted-fn))
+      (== perms/PermissionStatus.denied status)
+      (do
+         (log "check denied for " permission)
+         (await (permission-request permission granted-fn)))
+      (== perms/PermissionStatus.permanentlyDenied status)
+      (do
+        (new-notif (str (l10n/tr "common.permission-denied") permission))
+        (perms/openAppSettings))
+      :else (log "permission status " status " unsupported. ignoring?"))))
+
+(defn check-location-permission []
+  (check-permission (if (and (not foundation/kIsWeb) io/Platform.isAndroid)
+                        perms/Permission.locationWhenInUse
+                        perms/Permission.location)
+                    #(log "location perm granted!")))

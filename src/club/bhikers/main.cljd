@@ -4,21 +4,30 @@
            ["package:flutter/foundation.dart" :as foundation]
            ["package:flutter_map/flutter_map.dart" :as map]
            ["package:latlong2/latlong.dart" :as ll]
-           ["package:uuid/uuid.dart" :as uuid]
            ["package:easy_localization/easy_localization.dart" :as l10n]
            ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
            ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
            ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
-           ["package:dio/dio.dart" :as dio]
-           ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
-           ["package:permission_handler/permission_handler.dart" :as perms]
            ["dart:async" :as async]
-           ["dart:io" :as io]
-           ["package:geolocator/geolocator.dart" :as geo]
-           ["dart:convert" :as c]
            [club.bhikers.maps.controlbuttons :as mcb]
+           [club.bhikers.overpass-api :as overpass
+            :refer [new-overpass-api overpass-query]]
+           [club.bhikers.utils
+            :refer [l10n-str log create-cache-store]]
+           [club.bhikers.notifications
+            :refer
+            [new-notif
+             debug-notif
+             notifications
+             dismiss-notif
+             dismiss-all-notifs]]
+           [club.bhikers.position
+            :refer
+            [new-position-stream
+             ->location-marker-stream
+             subscribe-position-stream]]
            [cljd.flutter :as f]))
 
 ;; Around me ( +/- 10/20km): POIs*
@@ -27,12 +36,6 @@
 ;; Settings: avatar, sms/signal/telegram accounts to send alerts
 ;;
 ;; *POIs: bhikers, bakeries+resto, hotels+campings+spots, foutains for bottle refills
-
-;; logging setup
-(defonce debug-mode (atom true))
-(defn log [& args]
-  (when (or @debug-mode foundation/kDebugMode)
-    (m/debugPrint (apply str (into [(DateTime/now) " [club.bhikers]: "] args)))))
 
 ;; Setup default values
 (defonce supported-locales ["en" "fr" "it" "es" "de"])
@@ -47,49 +50,8 @@
                               "bottlerefills"
                               "toilets"])
 
-(defonce poi-types->osm-tags {"shelters" "amenity=shelter"
-                              "hotels" "tourism=hotel"
-                              "campsites" "tourism=camp_site"
-                              "restaurants" "amenity=restaurant"
-                              "bakeries" "shop=bakery"
-                              "bikeshops" "shop=bicycle"
-                              "bottlerefills" "fountain=bottle_refill"
-                              "toilets" "amenity=toilets"})
+
 (defonce default-poi-type "shelters")
-
-(defn poi-type->osm-tag [type] (get poi-types->osm-tags type false))
-
-;; Setup dio instance with cache+log interceptors for overpass-api.de
-;; dio is a lib for http requests
-(defonce uuidgen (atom (uuid/Uuid)))
-
-(defn create-cache-store ^cache/MemCacheStore [max-nb-of-entries max-entry-size]
-  (cache/MemCacheStore .maxSize (* max-nb-of-entries max-entry-size) .maxEntrySize max-entry-size))
-
-(defn create-dio-instance ^dio/Dio [base-url cache-store]
-  (log "create dio instance for url " base-url)
-  (let [api (dio/Dio
-             (dio/BaseOptions .baseUrl base-url
-                              .connectTimeout (Duration .seconds 5)
-                              .receiveTimeout (Duration .seconds 5)))]
-    (doto (.-interceptors api)
-      (.add (cache/DioCacheInterceptor
-             .options (cache/CacheOptions
-                       .store cache-store
-                       .policy cache/CachePolicy.forceCache
-                       .hitCacheOnErrorExcept [401 403]
-                       .maxStale (Duration .days 1)
-                       .priority cache/CachePriority.normal
-                       .allowPostMethod false
-                       .keyBuilder (fn [^dio/RequestOptions req-opts]
-                                     (let [cache-key (->> req-opts
-                                                          .-uri
-                                                          .toString
-                                                          (.v5 ^uuid/Uuid @uuidgen uuid/Uuid.NAMESPACE_URL))]
-                                       cache-key)))))
-      (.add (dio/LogInterceptor)))
-    api))
-
 
 ;; Setup main drawer with app routes
 (defn drawer []
@@ -109,35 +71,72 @@
                          (l10n/tr "settings.screen_title")
                          m/Icons.settings]]]
    m/Drawer
+    (m/ListView
+     .padding (m/EdgeInsets.all 2.0)
+     .children (concat
+                [(m/UserAccountsDrawerHeader
+                  .accountName (m/Text "John Doe")
+                  .accountEmail (m/Text "johndoe@example.com")
+                  .currentAccountPicture (m/CircleAvatar .child (m/Text "JD")))]
+                (map (fn [[route title icon]]
+                       (m/ListTile
+                        .leading (m/Icon icon)
+                        .title (m/Text title)
+                        .onTap
+                        (fn []
+                          (.pop navigator)
+                          (.pushNamed navigator route)
+                          nil)))
+                     drawer-routes)
+                [(m/AboutListTile
+                  .icon (m/Icon m/Icons.info)
+                  .applicationIcon nil
+                  .applicationName (l10n/tr "app.title")
+                  .applicationVersion "v0"
+                  .applicationLegalese (l10n/tr "about.legalese")
+                  .aboutBoxChildren [(m/SizedBox .height 24)
+                                     (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)
+                                                                   .text (l10n/tr "about.description")))])]))))
+
+(defn notifications-list-widget []
+  (f/widget
+   :watch [*notifs notifications]
    (m/ListView
     .padding (m/EdgeInsets.all 2.0)
-    .children (concat
-               [(m/UserAccountsDrawerHeader
-                 .accountName (m/Text "John Doe")
-                 .accountEmail (m/Text "johndoe@example.com")
-                 .currentAccountPicture (m/CircleAvatar .child (m/Text "JD")))]
-               (map (fn [[route title icon]]
-                      (m/ListTile
-                       .leading (m/Icon icon)
-                       .title (m/Text title)
-                       .onTap
-                       (fn []
-                         (.pop navigator)
-                         (.pushNamed navigator route)
-                         nil)))
-                    drawer-routes)
-               [(m/AboutListTile
-                 .icon (m/Icon m/Icons.info)
-                 .applicationIcon nil
-                 .applicationName (l10n/tr "app.title")
-                 .applicationVersion "v0"
-                 .applicationLegalese (l10n/tr "about.legalese")
-                 .aboutBoxChildren [(m/SizedBox .height 24)
-                                    (m/RichText .text (m/TextSpan .style (-> theme .-textTheme .-bodyMedium)
-                                                                  .text (l10n/tr "about.description")))])]))))
+    .children
+    (into [(m/ListTile
+            .leading (m/Icon m/Icons.notification_important)
+            .title (m/Text (l10n/tr "notifications.title"))
+            .trailing (m/IconButton
+                       .icon (m/Icon m/Icons.delete_sweep)
+                       .tooltip (l10n/tr "notifications.dismiss_all")
+                       .onPressed #(dismiss-all-notifs)))]
+          (map
+           (fn [[id txt]] (m/Dismissible
+                           .key (m/ValueKey id)
+                           .onDismissed (fn [_] (dismiss-notif id))
+                           .child (m/ListTile .title (m/Text txt))))
+           *notifs)))))
 
-(defn app-bar []
-  (m/AppBar .title (m/Text (l10n/tr "app.title"))))
+(defn app-bar [& {:keys [additional-actions]
+                  :or {additional-actions []}}]
+  (m/AppBar .title (m/Text (l10n/tr "app.title"))
+            .actions (into
+                      [(f/widget
+                        :context ctx
+                        (m/IconButton .icon (m/Icon m/Icons.notification_important)
+                                      .tooltip "important"
+                                      .onPressed (fn []
+                                                   (m/showModalBottomSheet
+                                                    .context ctx
+                                                    .builder (f/build
+                                                              (f/widget
+                                                               (m/Container .height 300)
+                                                               (notifications-list-widget))))
+
+                                                   nil)))]
+                      additional-actions)))
+
 
 ;; Around me Screen
 
@@ -156,8 +155,9 @@
                     .value poi
                     .groupValue selected-poi-type
                     .onChanged (fn [val]
-                                 (log "changed poi type to " val)
-                                 (swap! map-state assoc :selected-poi-type val)
+                                 (when (not= val (get map-state :selected-poi-type))
+                                   (log "changed poi type to " val)
+                                   (swap! map-state assoc :selected-poi-type val))
                                  (.pop navigator))))
          supported-poi-types))))
 
@@ -184,61 +184,26 @@
    :context ctx
    :get [:overpass-api :map-state]
    :watch [{:keys [selected-poi-type current-pos]} map-state
-           response (if (not current-pos)
-                      (do (log "current-pos is still unknown...") nil)
-                      (let [[lat lon] current-pos
-                            osm-tag (poi-type->osm-tag selected-poi-type)
-                            query (str "data=[out:json];node[" osm-tag "](around:" radius "," lat "," lon ");out;")]
-                        (try
-                          (log "Will request overpass-api.de with " query)
-                          (await (.get ^dio/Dio overpass-api query))
-                          (catch dio/DioException e
-                            (do (log "Exception! " e)
-                                nil)))))]
-   (if response
-     (let [{data .-data} ^dio/Response response
-           elements (get data "elements" [])]
-       (log "elements fetched: " elements)
-       (map/MarkerLayer .markers (map #(map/Marker .point (ll/LatLng (get % "lat")
-                                                                     (get % "lon"))
-                                                   .height 40
-                                                   .width 40
-                                                   .child (m/GestureDetector
-                                                           .onTap (fn [] (around-me-show-poi-info ctx %))
-                                                           .child (m/Icon m/Icons.location_pin
-                                                                          .size 40)))
-                                      elements)))
+           pois (if (not current-pos)
+                  (do (log "current-pos is still unknown...") nil)
+                  (await (overpass-query overpass-api current-pos selected-poi-type)))]
+   (if pois
+     (map/MarkerLayer
+      .markers (map #(map/Marker .point (ll/LatLng (get % "lat")
+                                                   (get % "lon"))
+                                 .height 40
+                                 .width 40
+                                 .child (m/GestureDetector
+                                         .onTap (fn [] (around-me-show-poi-info ctx %))
+                                         .child (m/Icon m/Icons.location_pin
+                                                        .size 40)))
+                    pois))
      (m/Container))))
 
 ;; Setup around me main screen with Flutter Map,
 ;; centered on device's current position
 ;; with markers representing selected POIs in a certain radius
 ;; around current position
-
-;; per device type location settings
-(defn location-settings []
-  (let[distance-filter 5000]               ; Update position every 5km...
-    (cond
-      ;; kIsWeb must be checked first because platform on web is throwing errors
-      foundation/kIsWeb (geo/LocationSettings .accuracy geo/LocationAccuracy.high
-                                              .distanceFilter distance-filter)
-      (io/Platform.isAndroid) (geo/AndroidSettings .accuracy geo/LocationAccuracy.high
-                                                   .intervalDuration (Duration .hours 1)
-                                                   .distanceFilter distance-filter
-                                                   .forceLocationManager true)
-      (io/Platform.isIOS) (geo/AppleSettings .accuracy geo/LocationAccuracy.high
-                                             .pauseLocationUpdatesAutomatically true
-                                             .distanceFilter distance-filter)
-      :else (geo/LocationSettings .accuracy geo/LocationAccuracy.high
-                                  .distanceFilter distance-filter))))
-
-;; update map state with last known's device position or current position
-;; if last position is not yet known
-(defn update-map-state-position! [map-state]
-  (let [new-pos (or (await (-> geo/Geolocator (.getLastKnownPosition)))
-                    (await (-> geo/Geolocator (.getCurrentPosition .locationSettings (location-settings)))))]
-    (swap! map-state assoc :current-pos [(.-latitude  new-pos)
-                                         (.-longitude new-pos)])))
 
 ;; around me main screen
 ;; a map with
@@ -249,45 +214,81 @@
 ;; position
 (defn around-me-screen []
   (f/widget
-   :managed [align-position-stream-controller (#/(async/StreamController double?))
-             :dispose .close]
-   :bind {:align-position-stream-controller (atom align-position-stream-controller)
-          :map-state (atom {:selected-poi-type default-poi-type
+   :let [scaffold-key (#/(m/GlobalKey m/ScaffoldState))]
+   :bind {:map-state (atom {:selected-poi-type default-poi-type
                             :current-pos false
                             :align-position-on-update maploc/AlignOnUpdate.always})}
    :get [:map-state]
-   :watch [{:keys [current-pos]} (update-map-state-position! map-state)
-           {:keys [selected-poi-type align-position-on-update]} map-state]
+   :managed [position-stream (new-position-stream) :dispose nil
+             location-marker-stream (->location-marker-stream position-stream) :dispose nil
+             position-listener (subscribe-position-stream
+                                position-stream
+                                (fn [lat lon]
+                                  (log "position event from stream: " lat " " lon)
+                                  (when (not= [lat lon] (get @map-state :current-pos))
+                                    (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
+                                    (swap! map-state assoc :current-pos [lat lon])
+                                    (log "new map state is " (get @map-state :current-pos)))))
+             :dispose .cancel]
+
    (m/Scaffold
-    .appBar (app-bar)
+    .key scaffold-key
+    .appBar (app-bar :additional-actions
+                     [(m/IconButton .icon (m/Icon m/Icons.layers)
+                                    .tooltip "layers"
+                                    .onPressed #(-> scaffold-key
+                                                    .-currentState
+                                                    .openEndDrawer))])
     .drawer (drawer)
     .endDrawer (around-me-enddrawer)
     .body
-    (map/FlutterMap
-     .options (map/MapOptions
-               .initialZoom 12
-               .minZoom 0
-               .maxZoom 18
-               .onPositionChanged (fn [camera hasGesture]
-                                    (when (and hasGesture
-                                               (not= align-position-on-update maploc/AlignOnUpdate.never))
-                                      (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never))))
-     .children
-     [(map/TileLayer
-       .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-       .userAgentPackageName "club.bhikers"
-       .tileProvider (cmap/CancellableNetworkTileProvider)
-       .maxZoom 18)
-      (around-me-pois-markers-widget 5000)
-      (maploc/CurrentLocationLayer
-       .alignPositionStream (.-stream align-position-stream-controller)
-       .alignPositionOnUpdate align-position-on-update)
-      (mcb/control-buttons :alignment m/Alignment.bottomRight)
-      (map/Scalebar
-       .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
-       .alignment m/Alignment.bottomLeft
-       .length map/ScalebarLength.m)
-      (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)]))))
+    (f/widget
+     :get [:map-state]
+     :watch [{:keys [align-position-on-update]} map-state]
+     :managed [align-position-stream-controller (#/(async/StreamController double?))
+               :dispose .close]
+     (map/FlutterMap
+      .options (map/MapOptions
+                .initialZoom 12
+                .minZoom 0
+                .maxZoom 18
+                ;; Stop aligning the location marker to the center of the map widget
+                ;; if user interacted with the map
+                .onPositionChanged (fn [camera hasGesture]
+                                     (when (and hasGesture
+                                                (not= align-position-on-update maploc/AlignOnUpdate.never))
+                                       (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never))))
+      .children
+      [(map/TileLayer
+        .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        .userAgentPackageName "club.bhikers"
+        .tileProvider (cmap/CancellableNetworkTileProvider)
+        .maxZoom 18)
+       (around-me-pois-markers-widget 5000)
+       (maploc/CurrentLocationLayer
+        .style (maploc/LocationMarkerStyle
+                .showAccuracyCircle false
+                .showHeadingSector false)
+        .positionStream location-marker-stream
+        .alignPositionStream (when (not (.-isClosed align-position-stream-controller))
+                               (-> align-position-stream-controller .-stream))
+        .alignPositionOnUpdate align-position-on-update
+        .followOnLocationUpdate maploc/FollowOnLocationUpdate.always
+        .alignDirectionOnUpdate maploc/AlignOnUpdate.never)
+       (mcb/control-buttons :alignment m/Alignment.bottomRight
+                            :onMyLocation
+                            (fn []
+                              (debug-notif "align map on current position")
+                              (when (not= align-position-on-update maploc/AlignOnUpdate.always)
+                                (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.always))
+                              (when (not (.-isClosed align-position-stream-controller))
+                                (.add ^#/(async/StreamController double?) align-position-stream-controller 12.0))))
+
+       (map/Scalebar
+        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+        .alignment m/Alignment.bottomLeft
+        .length map/ScalebarLength.m)
+       (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)])))))
 
 
 ;; Setup enhance gpx screen
@@ -373,34 +374,6 @@
                                 .fontSize 24
                                 .color m/Colors.black)))))
 
-;; permissions helpers
-;;
-(defn permission-request [permission granted-fn]
-  (log "requesting permission " permission)
-  (let [status (await (-> permission perms/PermissionActions (.request)))]
-    (cond
-      (== perms/PermissionStatus.granted status) (granted-fn)
-      (== perms/PermissionStatus.denied status) (permission-request permission granted-fn)
-      (== perms/PermissionStatus.permanentlyDenied status) (perms/openAppSettings)
-      :else (log "permission status " status " unsupported. ignoring."))))
-
-(defn check-permission [permission granted-fn]
-  (log "checking permission " permission)
-  (let [status (await (-> permission perms/PermissionActions (.-status)))]
-    (cond
-      (== perms/PermissionStatus.granted status) (do
-                                                   (log "check granted for " permission)
-                                                   (granted-fn))
-      (== perms/PermissionStatus.denied status) (do
-                                                   (log "check denied for " permission)
-                                                  (await (permission-request permission granted-fn)))
-      (== perms/PermissionStatus.permanentlyDenied status) (do
-                                                             (log "check permanently denied for " permission)
-                                                             (perms/openAppSettings))
-      :else (log "permission status " status " unsupported. ignoring?"))))
-
-
-
 ;; Main:
 ;; init settings, localizqtion
 ;; run MaterialApp with default screen "Around Me"
@@ -413,36 +386,32 @@
     (m/WidgetsFlutterBinding.ensureInitialized)
     (log "init easy l10n")
     (await (l10n/EasyLocalization.ensureInitialized))
-    (log "wait for permissions")
-    (await (check-permission (if (and (not foundation/kIsWeb) io/Platform.isAndroid)
-                               perms/Permission.locationWhenInUse
-                               perms/Permission.location)
-                             #(log "location perm granted!")))
-    (f/run
-      (f/widget
-       (l10n/EasyLocalization
-        .supportedLocales (map #(m/Locale %) supported-locales)
-        .fallbackLocale (m/Locale default-locale)
-        .saveLocale true
-        .useOnlyLangCode true
-        .useFallbackTranslations true
-        .assetLoader (l10nassets/YamlAssetLoader)
-        .path "src/resources/langs")
-       (f/widget
-        :context ctx
-        :managed [cache-store (create-cache-store 20 (* 1024 1024)) :dispose .close
-                  overpass-api (create-dio-instance "https://overpass-api.de/api/interpreter?" cache-store)
-                  :dispose .close]
-        :bind {:overpass-api overpass-api}
-        (m/MaterialApp
-         .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .-localizationDelegates)
-         .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .-supportedLocales)
-         .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .-locale)
-         .initialRoute "/around-me"
-         .theme theme
-         .routes (into {}
-                       (keep (fn [[k v]] {k (fn ^m/Widget k [_] (v))}))
-                       {"/around-me" around-me-screen
-                        "/enhance-gpx" enhance-gpx-screen
-                        "/fall-detector" fall-detector-screen
-                        "/settings" settings-screen})))))))
+   (debug-notif "starting app")
+   (f/run
+    (f/widget
+     (l10n/EasyLocalization
+      .supportedLocales (map #(m/Locale %) supported-locales)
+      .fallbackLocale (m/Locale default-locale)
+      .saveLocale true
+      .useOnlyLangCode true
+      .useFallbackTranslations true
+      .assetLoader (l10nassets/YamlAssetLoader)
+      .path "src/resources/langs")
+     (f/widget
+      :context ctx
+      :managed [cache-store (create-cache-store 20 (* 1024 1024)) :dispose .close
+                overpass-api (new-overpass-api cache-store)
+                :dispose .close]
+      :bind {:overpass-api overpass-api}
+      (m/MaterialApp
+       .localizationsDelegates (-> ctx l10n/BuildContextEasyLocalizationExtension .-localizationDelegates)
+       .supportedLocales (-> ctx l10n/BuildContextEasyLocalizationExtension .-supportedLocales)
+       .locale (-> ctx l10n/BuildContextEasyLocalizationExtension .-locale)
+       .initialRoute "/around-me"
+       .theme theme
+       .routes (into {}
+                     (keep (fn [[k v]] {k (fn ^m/Widget k [_] (v))}))
+                     {"/around-me" around-me-screen
+                      "/enhance-gpx" enhance-gpx-screen
+                      "/fall-detector" fall-detector-screen
+                      "/settings" settings-screen})))))))

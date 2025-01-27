@@ -22,6 +22,7 @@ enhance_gpx:
 around_me:
   screen_title: In meiner Nähe
   description: POIs um meine aktuelle GPS-Position
+  no_permission: Bitte erteilen Sie die Standortberechtigung
   poi_types:
     bhikers: Bhikers
     shelters: Unterkünfte
@@ -35,3 +36,8 @@ around_me:
 about:
   screen_title: Über
   description: Bhikers Club von ParaSitid
+common:
+  close: schließen
+  permission-denied: Berechtigung dauerhaft verweigert für
+notifications:
+  title: Benachrichtigungen

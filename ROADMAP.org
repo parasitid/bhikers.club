@@ -4,9 +4,10 @@
 ** global ui
 *** TODO setup icon
 ** Around me
+*** TODO add "loading position message..."
 *** TODO clusters of POI markers
 *** TODO add radius slider
-*** TODO better end drawer for filters
+*** DONE better end drawer for filters
 *** DONE add compass rotation icon on map
 *** DONE add popup on poi markers with info
 *** TODO share poi with nav app (waze/geovelo/komoot/...)
@@ -22,7 +23,8 @@
 *** TODO insert bhikers club good fellow
 ** user management
 *** TODO associate id with device in backend api
-
+** tech/debug
+*** DONE add notif messages for debug instead and/or logs in a widget
 * App release
 ** CICD
 *** TODO automate build, release and publish android app on github

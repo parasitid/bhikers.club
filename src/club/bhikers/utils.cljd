@@ -1,0 +1,30 @@
+(ns club.bhikers.utils
+  (:require
+   ["package:uuid/uuid.dart" :as uuid]
+   ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
+   ["package:flutter/material.dart" :as m]
+   ["package:flutter/foundation.dart" :as foundation]
+   ["package:easy_localization/easy_localization.dart" :as l10n]
+   ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
+   ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]))
+
+(defonce force-debug-mode (atom true))
+(defn debug-mode? [] (or @force-debug-mode foundation/kDebugMode))
+
+(defn l10n-str [& args] (apply str (map l10n/tr args)))
+
+(defn log [& args]
+  (when (debug-mode?)
+   (m/debugPrint (apply str (into [(DateTime/now) " [club.bhikers]: "] args)))))
+
+
+;; Setup dio instance with cache+log interceptors for overpass-api.de
+;; dio is a lib for http requests
+(defonce uuidgen (atom (uuid/Uuid)))
+
+(defn uuid-v5 [url] (.v5 ^uuid/Uuid @uuidgen uuid/Uuid.NAMESPACE_URL url))
+
+(defn uuid-v4 [] (.v4 ^uuid/Uuid @uuidgen))
+
+(defn create-cache-store ^cache/MemCacheStore [max-nb-of-entries max-entry-size]
+  (cache/MemCacheStore .maxSize (* max-nb-of-entries max-entry-size) .maxEntrySize max-entry-size))
