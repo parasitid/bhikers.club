@@ -16,7 +16,7 @@
 *** TODO add cache for tiles
 *** DONE add zoom buttons
 *** TODO long tap to recenter map on custom position
-*** TODO dont reset zoom on my location recenter
+*** DONE dont reset zoom on my location recenter
 *** TODO show "location currently unknown" overlay message
 ** Settings
 *** TODO setup around me defaults in settings
