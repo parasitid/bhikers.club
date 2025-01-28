@@ -15,6 +15,9 @@
 *** TODO add recommandation on POI (setup api backend)
 *** TODO add cache for tiles
 *** DONE add zoom buttons
+*** TODO long tap to recenter map on custom position
+*** TODO dont reset zoom on my location recenter
+*** TODO show "location currently unknown" overlay message
 ** Settings
 *** TODO setup around me defaults in settings
 ** About
@@ -23,6 +26,7 @@
 *** TODO insert bhikers club good fellow
 ** user management
 *** TODO associate id with device in backend api
+*** TODO create web view to osm account creation/login page
 ** tech/debug
 *** DONE add notif messages for debug instead and/or logs in a widget
 * App release
