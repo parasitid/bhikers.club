@@ -4,9 +4,7 @@
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
    ["package:flutter/material.dart" :as m]
    ["package:flutter/foundation.dart" :as foundation]
-   ["package:easy_localization/easy_localization.dart" :as l10n]
-   ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
-   ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]))
+   ["package:easy_localization/easy_localization.dart" :as l10n]))
 
 (defonce force-debug-mode (atom true))
 (defn debug-mode? [] (or @force-debug-mode foundation/kDebugMode))
@@ -15,7 +13,7 @@
 
 (defn log [& args]
   (when (debug-mode?)
-   (m/debugPrint (apply str (into [(DateTime/now) " [club.bhikers]: "] args)))))
+   (m/debugPrint (apply str (into [(.now DateTime) " [club.bhikers]: "] args)))))
 
 
 ;; Setup dio instance with cache+log interceptors for overpass-api.de

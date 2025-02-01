@@ -4,7 +4,6 @@
 ** global ui
 *** TODO setup icon
 ** Around me
-*** TODO add "loading position message..."
 *** TODO clusters of POI markers
 *** TODO add radius slider
 *** DONE better end drawer for filters
@@ -15,7 +14,7 @@
 *** TODO add recommandation on POI (setup api backend)
 *** TODO add cache for tiles
 *** DONE add zoom buttons
-*** TODO long tap to recenter map on custom position
+*** DONE long tap to recenter map on custom position
 *** DONE dont reset zoom on my location recenter
 *** TODO show "location currently unknown" overlay message
 ** Settings
