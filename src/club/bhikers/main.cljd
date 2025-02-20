@@ -9,7 +9,7 @@
            [club.bhikers.screens.enhancegpx :refer [enhance-gpx-screen]]
            [club.bhikers.screens.falldetector :refer [fall-detector-screen]]
            [club.bhikers.lib.app :refer [supported-locales default-locale]]
-           [club.bhikers.lib.overpass-api :refer [new-overpass-api]]
+           [club.bhikers.lib.pois :refer [new-overpass-api]]
            [club.bhikers.lib.utils :refer [log create-cache-store]]
            [club.bhikers.lib.notifications :refer [debug-notif]]
            [cljd.flutter :as f]))

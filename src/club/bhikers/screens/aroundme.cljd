@@ -11,9 +11,8 @@
                                          vertouplage]]
            [club.bhikers.lib.map :as map]
            [club.bhikers.screens.common :refer [app-bar drawer]]
-           [club.bhikers.lib.overpass-api :refer [overpass-query]]
+           [club.bhikers.lib.pois :refer [dynamic-map-pois]]
            [club.bhikers.lib.utils :refer [l10n-str log debug-mode?]]
-           [club.bhikers.lib.notifications :refer [debug-notif]]
            [cljd.flutter :as f]))
 
 ;; Around me ( +/- 10/20km): POIs*
@@ -66,23 +65,9 @@
 ;; - get and extract json data from overpass-api-de accordingly
 ;; - return a widget of markers for each element returned
 ;; - if no response or error, return empty widget
-(defn around-me-pois-markers-widget [& {:keys [radius] :or {radius 1000}}]
+(defn around-me-pois-markers-widget []
   (f/widget :context ctx :get [:map-state :overpass-api]
-            :watch [pois (let [pois (atom [])]
-                           (add-watch map-state :refresh-pois
-                                      (fn [_ _ old-state new-state]
-                                        (when (not= (select-keys old-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?])
-                                                    (select-keys new-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?]))
-                                          (debug-notif "refreshing pois!")
-                                          (let [{:keys [selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
-                                            (when (or (and current-pos-as-center? current-pos) current-center)
-                                              (let [results (await (overpass-query overpass-api
-                                                                                   (if (and current-pos-as-center? current-pos) current-pos current-center)
-                                                                                   selected-poi-type :radius radius))]
-                                                (if results
-                                                  (reset! pois results)
-                                                  (debug-notif "no pois fetched! map-state was: " new-state))))))))
-                           pois)]
+            :watch [pois (dynamic-map-pois map-state overpass-api)]
    (fmap/MarkerLayer
     .markers (map #(fmap/Marker .point (ll/LatLng (get % "lat") (get % "lon"))
                                .height 40
@@ -98,8 +83,6 @@
 ;; centered on device's current position
 ;; with markers representing selected POIs in a certain radius
 ;; around current position
-
-
 (defn new-current-center-marker [current-pos-as-center? current-center]
   (if (and current-center (not current-pos-as-center?))
     (let [[lat lon] current-center]

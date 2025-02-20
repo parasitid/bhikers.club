@@ -1,7 +1,8 @@
-(ns club.bhikers.lib.overpass-api
+(ns club.bhikers.lib.pois
   (:require
    ["package:dio/dio.dart" :as dio]
    ["package:dio_cache_interceptor/dio_cache_interceptor.dart" :as cache]
+   [club.bhikers.lib.notifications :refer [debug-notif]]
    [club.bhikers.lib.utils :refer [log uuid-v5]]))
 
 (defonce poi-types->osm-tags {"shelters" "amenity=shelter"
@@ -55,3 +56,20 @@
       (let [{{elements "elements"} .-data} ^dio/Response response]
        (log "elements fetched from api: " elements)
        elements))))
+
+(defn dynamic-map-pois [map-state overpass-api & {:keys [radius] :or {radius 1000}}]
+ (let [pois (atom [])]
+   (add-watch map-state :refresh-pois
+         (fn [_ _ old-state new-state]
+           (when (not= (select-keys old-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?])
+                       (select-keys new-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?]))
+             (debug-notif "refreshing pois!")
+             (let [{:keys [selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
+               (when (or (and current-pos-as-center? current-pos) current-center)
+                 (let [results (await (overpass-query overpass-api
+                                                      (if (and current-pos-as-center? current-pos) current-pos current-center)
+                                                      selected-poi-type :radius radius))]
+                   (if results
+                     (reset! pois results)
+                     (debug-notif "no pois fetched! map-state was: " new-state))))))))
+   pois))
