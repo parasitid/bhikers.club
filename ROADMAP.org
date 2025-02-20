@@ -2,10 +2,14 @@
 
 * Issues
 
-** TODO Map position is not reliable
+** DONE Map position is not reliable
 it seems that the very first time the app is started and permissions allowed, the
-position (last or current) is fetched instantly. But the next time the app is started fetching
-location is abnormally long
+position (last or current) is fetched instantly. But the next time the app is started fetching location is abnormally long
+
+-> fixed by removing geolocator getCurrentPostion
+waiting for geolocator currentpostion seems to be broken at least on some devices for unknown reasons.
+rely only on geolocator lastknownposition + position stream as a workaround
+
 
 * App features
 ** global ui

@@ -1,6 +1,6 @@
-(ns club.bhikers.notifications
+(ns club.bhikers.lib.notifications
   (:require
-   [club.bhikers.utils :refer [debug-mode? log uuid-v4]]))
+   [club.bhikers.lib.utils :refer [debug-mode? log uuid-v4]]))
 
 (defonce notifications (atom {}))
 

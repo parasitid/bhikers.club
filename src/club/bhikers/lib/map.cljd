@@ -1,0 +1,192 @@
+(ns club.bhikers.lib.map
+  "Zoom buttons widget"
+  (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter_map/flutter_map.dart" :as fmap]
+            ["package:geolocator/geolocator.dart" :as geo]
+            ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
+            ["dart:async" :as async]
+            [club.bhikers.lib.notifications :refer [debug-notif]]
+            [club.bhikers.lib.app :refer [default-poi-type]]
+            [club.bhikers.lib.utils :refer [log debug-mode?]]
+            [club.bhikers.lib.position
+             :refer
+             [new-position-stream-controller
+              new-position-bstream
+              ->location-marker-stream
+              subscribe-position-stream]]
+            [cljd.flutter :as f]))
+
+
+
+(defn new-state []
+  (let [map-state (atom {:selected-poi-type default-poi-type
+                         :current-pos nil
+                         :current-center nil
+                         :current-pos-as-center? true
+                         :align-position-on-update maploc/AlignOnUpdate.always})]
+    (when debug-mode?
+      (add-watch map-state :map-message
+                 (fn [_ _ old-state new-state]
+                   (when (not= (select-keys old-state [:current-pos])
+                               (select-keys new-state [:current-pos]))
+                     (swap! map-state assoc :message (str "position is " (get new-state :current-pos)))))))
+    map-state))
+
+(defprotocol disposable-streams
+  (dispose! [this])
+  (init! [this])
+  (location-marker-stream [this])
+  (align-position-stream [this])
+  (align-on-current-pos-callback [this])
+  (new-center! [this [lat lon]])
+  (stop-alignment! [this]))
+
+(defn ->state-streams [map-state]
+  (reify disposable-streams
+    (dispose! [this]
+      (let [{:keys [streamz]} @map-state
+            {:keys [pss apsc psc]} streamz]
+        (when pss
+          (log "cancel subscription")
+          (.cancel ^#/(async/StreamSubscription geo/Position?) pss))
+        (when apsc
+          (log "cancel align position stream controller.")
+          (.close ^#/(async/StreamController double?) apsc))
+        (when psc
+          (log "cancel position stream controller")
+          (.close ^#/(async/StreamController geo/Position?) psc))
+        (swap! map-state dissoc :streamz))
+      this)
+
+    (init! [this]
+      (let [psc (new-position-stream-controller)
+            apsc (#/(async/StreamController double?))
+            ps (new-position-bstream psc)
+            lms (->location-marker-stream ps)
+            pss (subscribe-position-stream
+                 ps
+                 (fn [lat lon]
+                   (log "position event from stream: " lat " " lon)
+                   (let [{:keys [current-pos]} @map-state]
+                     (when (not= [lat lon] current-pos)
+                       (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
+                       ;; swap position before refreshing pois
+                       (swap! map-state assoc :current-pos [lat lon])))))]
+
+        (swap! map-state assoc :streamz
+               {:psc psc :ps ps :apsc apsc :lms lms :pss pss}))
+      this)
+    (location-marker-stream [_]
+      (let [{:keys [streamz]} @map-state
+            {:keys [lms]} streamz]
+        lms))
+    (align-position-stream [_]
+      (let [{:keys [streamz]} @map-state
+            {:keys [apsc]} streamz]
+        (when apsc (.-stream ^#/(async/StreamController double?) apsc))))
+    (align-on-current-pos-callback [_]
+      (fn []
+       (let [{:keys [streamz current-pos-as-center? align-position-on-update]} @map-state
+             {:keys [apsc]} streamz]
+         (debug-notif "(re)align map on current position")
+         (when (or (not= align-position-on-update maploc/AlignOnUpdate.always)
+                   (not current-pos-as-center?))
+           (swap! map-state assoc
+                  :align-position-on-update maploc/AlignOnUpdate.always
+                  :current-pos-as-center? true))
+         (when (and apsc (not (.-isClosed ^#/(async/StreamController double?) apsc)))
+           (.add ^#/(async/StreamController double?) apsc nil)))))
+    (new-center! [_ [lat lon]]
+      (swap! map-state assoc
+             :align-position-on-update maploc/AlignOnUpdate.never
+             :current-center [lat lon]
+             :current-pos-as-center? false))
+   (stop-alignment! [_]
+     ;; beware gestures are flooding calls
+     (let [{:keys [align-position-on-update]} @map-state]
+       (when (not= align-position-on-update maploc/AlignOnUpdate.never)
+         (swap! map-state assoc :align-position-on-update maploc/AlignOnUpdate.never))))))
+
+
+(defn msg [& {:keys [alignment bottom-padding]
+                  :or {
+                       alignment m/Alignment.bottomCenter
+                       bottom-padding 50}}]
+  (f/widget
+   :get [:map-state]
+   :watch [{:keys [message]} map-state]
+   (m/Align .alignment alignment)
+   (if message
+     (f/widget
+      (m/Padding .padding (m/EdgeInsets.only .bottom bottom-padding))
+      (f/widget
+       (m/Container .decoration (m/BoxDecoration .color m/Colors.white
+                                                 .border (m/Border.all)
+                                                 .borderRadius (m/BorderRadius.circular 5)))
+       (f/widget
+        (m/Padding .padding (m/EdgeInsets.all 5))
+        (m/Text message .overflow m/TextOverflow.ellipsis))))
+     (m/Container))))
+
+
+(defn control-buttons [ & {:keys [minZoom
+                                      maxZoom
+                                      mini
+                                      padding
+                                      alignment
+                                      zoomInColor
+                                      zoomInColorIcon
+                                      zoomInIcon
+                                      zoomOutColor
+                                      zoomOutColorIcon
+                                      zoomOutIcon
+                                      myLocationColor
+                                      myLocationColorIcon
+                                      myLocationIcon
+                                      onMyLocation]
+                               :or {minZoom 1
+                                    maxZoom 18
+                                    mini false
+                                    padding 2.0
+                                    alignment m/Alignment.topRight
+                                    zoomInColor nil
+                                    zoomInColorIcon nil
+                                    zoomInIcon m/Icons.zoom_in
+                                    zoomOutColor nil
+                                    zoomOutColorIcon nil
+                                    zoomOutIcon  m/Icons.zoom_out
+                                    myLocationColor nil
+                                    myLocationColorIcon nil
+                                    myLocationIcon  m/Icons.my_location
+                                    onMyLocation (fn [_ _] nil)}}]
+  (f/widget
+   :get [fmap/MapController
+         fmap/MapCamera
+         m/Theme]
+   (m/Align .alignment alignment)
+   (m/Column
+    .mainAxisSize m/MainAxisSize.min
+    .children
+    [(m/Padding .padding (m/EdgeInsets.only .left padding .top padding .right padding)
+                .child (m/FloatingActionButton
+                        .heroTag "zoomInButton"
+                        .mini mini
+                        .backgroundColor (or zoomInColor (.-primaryColorLight theme))
+                        .onPressed (fn [] (-> map-controller (.move (.-center map-camera) (min (inc (.-zoom map-camera)) maxZoom)))
+                                     nil)
+                        .child (m/Icon zoomInIcon .color (or zoomInColorIcon (-> theme .-iconTheme .-color)))))
+     (m/Padding .padding (m/EdgeInsets.only .left padding .top padding .right padding)
+                .child (m/FloatingActionButton
+                        .heroTag "zoomOutButton"
+                        .mini mini
+                        .backgroundColor (or zoomOutColor (.-primaryColorLight theme))
+                        .onPressed (fn [] (-> map-controller (.move (.-center map-camera) (max (dec (.-zoom map-camera)) minZoom)))
+                                     nil)
+                        .child (m/Icon zoomOutIcon .color (or zoomOutColorIcon (-> theme .-iconTheme .-color)))))
+     (m/Padding .padding (m/EdgeInsets.all padding)
+                .child (m/FloatingActionButton
+                        .heroTag "myLocationButton"
+                        .mini mini
+                        .backgroundColor (or myLocationColor (.-primaryColorLight theme))
+                        .onPressed onMyLocation
+                        .child (m/Icon myLocationIcon .color (or myLocationColorIcon (-> theme .-iconTheme .-color)))))])))

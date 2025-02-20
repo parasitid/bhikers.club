@@ -1,0 +1,22 @@
+(ns club.bhikers.lib.app
+    (:require ["package:latlong2/latlong.dart" :as ll]))
+
+(defonce force-debug-mode (atom true))
+(defonce supported-locales ["en" "fr" "it" "es" "de"])
+(defonce default-locale "en")
+
+(defonce supported-poi-types ["bhikers"
+                              "shelters"
+                              "hotels"
+                              "campsites"
+                              "restaurants"
+                              "bakeries"
+                              "bikeshops"
+                              "bottlerefills"
+                              "toilets"])
+
+
+(defonce default-poi-type "shelters")
+
+(defonce icicommencelaventure (ll/LatLng 48.51479 2.65053))
+(defonce vertouplage (ll/LatLng 47.1612 -1.4778))

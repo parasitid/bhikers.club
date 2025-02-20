@@ -1,0 +1,50 @@
+(ns club.bhikers.screens.settings
+  "Bhikers Club App by ParaSitid"
+  (:require ["package:flutter/material.dart" :as m]
+           ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
+           ["package:easy_localization/easy_localization.dart" :as l10n]
+           [club.bhikers.screens.common :refer [app-bar drawer]]
+           [club.bhikers.lib.utils :refer [l10n-str log]]
+           [club.bhikers.lib.app :refer [supported-locales default-locale]]
+           [cljd.flutter :as f]))
+
+;; Setup settings screen
+;; setup various settings options
+(defn settings-screen []
+  (m/Scaffold
+   .appBar (app-bar)
+   .drawer (drawer)
+   .body (f/widget
+          :context ctx
+          m/Container
+          (settings/SettingsScreen
+           .title  (l10n-str "settings.screen_title")
+           .children
+           [(settings/SettingsGroup
+             .title  (l10n-str "settings.general_group_title")
+             .children
+             [(#/(settings/DropDownSettingsTile String)
+                 .leading (m/Icon m/Icons.language)
+                 .settingKey "/general/language"
+                 .title  (l10n-str "settings.language")
+                 .values (into {} (map (fn [lang] [lang (l10n-str (str "settings.langs." lang))])
+                                       supported-locales))
+                 .selected default-locale
+                 .onChange #(do (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
+                                nil))])
+
+            (settings/SettingsGroup
+             .title  (l10n-str "settings.fall_detector_group_title")
+             .children
+             [(settings/SwitchSettingsTile
+               .leading (m/Icon m/Icons.crisis_alert)
+               .settingKey "/fall-detector/alert-mode"
+               .title (l10n-str "settings.alert_mode")
+               .onChange #(log "switched fall-detector-mode to " %)
+               .childrenIfEnabled
+               [(settings/TextInputSettingsTile
+                 .settingKey "/fall-detector/emergency-contact-phone-number"
+                 .title (l10n-str "settings.emerengcy_contact_phone_number")
+                 .validator #(do (log "phone number " %)
+                                 nil)
+                 .initialValue  "+33000000000")])])]))))

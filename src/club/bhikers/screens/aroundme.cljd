@@ -1,0 +1,179 @@
+(ns club.bhikers.screens.aroundme
+  "Bhikers Club App by ParaSitid"
+   (:require ["package:flutter/material.dart" :as m]
+           ["package:flutter_map/flutter_map.dart" :as fmap]
+           ["package:latlong2/latlong.dart" :as ll]
+           ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
+           ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
+           ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
+           [club.bhikers.lib.app :refer [supported-poi-types
+                                         icicommencelaventure
+                                         vertouplage]]
+           [club.bhikers.lib.map :as map]
+           [club.bhikers.screens.common :refer [app-bar drawer]]
+           [club.bhikers.lib.overpass-api :refer [overpass-query]]
+           [club.bhikers.lib.utils :refer [l10n-str log debug-mode?]]
+           [club.bhikers.lib.notifications :refer [debug-notif]]
+           [cljd.flutter :as f]))
+
+;; Around me ( +/- 10/20km): POIs*
+;; Enhance GPX: upload gpx and add POIs*
+;; Fall Detector Alert: use accelerometer to detect fall or no movement
+;; Settings: avatar, sms/signal/telegram accounts to send alerts
+;;
+;; *POIs: bhikers, bakeries+resto, hotels+campings+spots, foutains for bottle refills
+
+;; Setup default values
+
+;; Around me Screen
+
+;; setup around me right menu to select POIs on map
+(defn around-me-enddrawer []
+  (f/widget
+   :get [:map-state
+         m/Navigator]
+   :watch [{:keys [selected-poi-type]} map-state]
+   m/Drawer
+   (m/ListView
+    .padding (m/EdgeInsets.all 2.0)
+    .children
+    (map (fn [poi] (m/RadioListTile
+                    .title (m/Text (l10n-str (str "around_me.pois." poi)))
+                    .value poi
+                    .groupValue selected-poi-type
+                    .onChanged (fn [val]
+                                 (when (not= val (get @map-state :selected-poi-type))
+                                   (log "changed poi type to " val)
+                                   (swap! map-state assoc :selected-poi-type val))
+                                 (.pop navigator))))
+         supported-poi-types))))
+
+;; modal bottom sheet displaying info about a POI
+(defn around-me-show-poi-info [ctx poi]
+  (m/showModalBottomSheet
+   .context ctx
+   .builder (f/build
+             (f/widget
+              (m/Container .height 300)
+              (m/ListView .children (map (fn [[name value]]
+                                           (m/ListTile
+                                            .subtitle (m/Text (l10n-str name))
+                                            .title (m/Text value)))
+                                         (get poi "tags" {})))))))
+
+;; widget for POI markers on map
+;; - watch map-state current position & selected poi type
+;; - get and extract json data from overpass-api-de accordingly
+;; - return a widget of markers for each element returned
+;; - if no response or error, return empty widget
+(defn around-me-pois-markers-widget [& {:keys [radius] :or {radius 1000}}]
+  (f/widget :context ctx :get [:map-state :overpass-api]
+            :watch [pois (let [pois (atom [])]
+                           (add-watch map-state :refresh-pois
+                                      (fn [_ _ old-state new-state]
+                                        (when (not= (select-keys old-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?])
+                                                    (select-keys new-state [:selected-poi-type :current-pos :current-center :current-pos-as-center?]))
+                                          (debug-notif "refreshing pois!")
+                                          (let [{:keys [selected-poi-type current-pos current-center current-pos-as-center?]} new-state]
+                                            (when (or (and current-pos-as-center? current-pos) current-center)
+                                              (let [results (await (overpass-query overpass-api
+                                                                                   (if (and current-pos-as-center? current-pos) current-pos current-center)
+                                                                                   selected-poi-type :radius radius))]
+                                                (if results
+                                                  (reset! pois results)
+                                                  (debug-notif "no pois fetched! map-state was: " new-state))))))))
+                           pois)]
+   (fmap/MarkerLayer
+    .markers (map #(fmap/Marker .point (ll/LatLng (get % "lat") (get % "lon"))
+                               .height 40
+                               .width 40
+                               .child (m/GestureDetector
+                                       .onTap (fn [] (around-me-show-poi-info ctx %))
+                                       .child (m/Icon m/Icons.location_pin
+                                                      .size 40)))
+                  pois))))
+
+
+;; Setup around me main screen with Flutter Map,
+;; centered on device's current position
+;; with markers representing selected POIs in a certain radius
+;; around current position
+
+
+(defn new-current-center-marker [current-pos-as-center? current-center]
+  (if (and current-center (not current-pos-as-center?))
+    (let [[lat lon] current-center]
+      (maploc/AnimatedLocationMarkerLayer
+       .position (maploc/LocationMarkerPosition .latitude lat .longitude lon .accuracy 0)))
+    (m/Container)))
+
+(defn new-current-location-marker-style [current-pos-as-center? theme]
+  (maploc/LocationMarkerStyle
+   .showAccuracyCircle false
+   .showHeadingSector false
+   .marker (maploc/DefaultLocationMarker
+            .color (if current-pos-as-center?
+                     (-> ^m/ThemeData theme .-colorScheme .-primary)
+                     (-> ^m/ThemeData theme .-colorScheme .-secondary)))))
+
+;; around me main screen
+;; a map with
+;; - current position marker centered
+;; - my location button to recenter map on current position
+;; - a scalebar
+;; - markers for selected pois in a 5km radius around current
+;; position
+
+(defn around-me-screen []
+  (f/widget
+   :let [scaffold-key (#/(m/GlobalKey m/ScaffoldState))]
+   :bind {:map-state (map/new-state)}
+   :get [:map-state m/Theme]
+   :managed [dms (-> map-state map/->state-streams map/init!) :dispose map/dispose!]
+   :watch [{:keys [align-position-on-update current-pos-as-center? current-center]} map-state]
+   (m/Scaffold
+    .key scaffold-key
+    .appBar (app-bar :additional-actions
+                     [(m/IconButton .icon (m/Icon m/Icons.layers)
+                                    .tooltip "layers"
+                                    .onPressed #(-> scaffold-key
+                                                    .-currentState
+                                                    .openEndDrawer))])
+    .drawer (drawer)
+    .endDrawer (around-me-enddrawer)
+    .body
+    (fmap/FlutterMap
+     .options (fmap/MapOptions
+               .initialZoom 14
+               .initialCenter (if debug-mode? vertouplage icicommencelaventure)
+               .minZoom 0
+               .maxZoom 18
+               .onLongPress (fn [_ ^ll/LatLng point]
+                              (map/new-center! dms [(.-latitude point) (.-longitude point)]))
+
+               ;; Stop aligning the location marker to the center of the map widget
+               ;; if user interacted with the map
+               .onPositionChanged (fn [_ hasGesture] (when hasGesture (map/stop-alignment! dms))))
+     .children
+     [(fmap/TileLayer
+       .urlTemplate "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+       .userAgentPackageName "club.bhikers"
+       .tileProvider (cmap/CancellableNetworkTileProvider)
+       .maxZoom 18)
+      (around-me-pois-markers-widget)
+      (maploc/CurrentLocationLayer
+       .style (new-current-location-marker-style current-pos-as-center? theme)
+       .positionStream (map/location-marker-stream dms)
+       .alignPositionStream (map/align-position-stream dms)
+       .alignPositionOnUpdate align-position-on-update
+       .followOnLocationUpdate maploc/FollowOnLocationUpdate.always
+       .alignDirectionOnUpdate maploc/AlignOnUpdate.never)
+      (map/control-buttons :alignment m/Alignment.bottomRight
+                           :onMyLocation (map/align-on-current-pos-callback dms))
+      (fmap/Scalebar
+       .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
+       .alignment m/Alignment.bottomLeft
+       .length fmap/ScalebarLength.m)
+      (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)
+      (new-current-center-marker current-pos-as-center? current-center)
+      (map/msg)]))))
