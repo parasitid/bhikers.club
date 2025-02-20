@@ -11,11 +11,15 @@
            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
            ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
            ["dart:async" :as async]
-           [club.bhikers.maps.controlbuttons :as mcb]
+           [club.bhikers.map
+            :refer [map-control-buttons map-msg]]
            [club.bhikers.overpass-api :as overpass
             :refer [new-overpass-api overpass-query]]
            [club.bhikers.utils
-            :refer [l10n-str log create-cache-store]]
+            :refer [l10n-str
+                    log
+                    create-cache-store
+                    debug-mode?]]
            [club.bhikers.notifications
             :refer
             [debug-notif
@@ -212,11 +216,18 @@
 ;; with markers representing selected POIs in a certain radius
 ;; around current position
 (defn new-map-state []
-  (atom {:selected-poi-type default-poi-type
-         :current-pos nil
-         :current-center nil
-         :current-pos-as-center? true
-         :align-position-on-update maploc/AlignOnUpdate.always}))
+  (let [map-state (atom {:selected-poi-type default-poi-type
+                         :current-pos nil
+                         :current-center nil
+                         :current-pos-as-center? true
+                         :align-position-on-update maploc/AlignOnUpdate.always})]
+    (when debug-mode?
+      (add-watch map-state :map-message
+                 (fn [_ _ old-state new-state]
+                   (when (not= (select-keys old-state [:current-pos])
+                               (select-keys new-state [:current-pos]))
+                     (swap! map-state assoc :message (str "position is " (get new-state :current-pos)))))))
+    map-state))
 
 (defprotocol disposable-map-streams
   (dispose! [this])
@@ -317,6 +328,9 @@
 ;; - a scalebar
 ;; - markers for selected pois in a 5km radius around current
 ;; position
+(def icicommencelaventure (ll/LatLng 48.51479 2.65053))
+(def vertouplage (ll/LatLng 47.1612 -1.4778))
+
 (defn around-me-screen []
   (f/widget
    :let [scaffold-key (#/(m/GlobalKey m/ScaffoldState))]
@@ -338,7 +352,7 @@
     (map/FlutterMap
      .options (map/MapOptions
                .initialZoom 14
-               .initialCenter (ll/LatLng 48.51479 2.65053)
+               .initialCenter (if debug-mode? vertouplage icicommencelaventure)
                .minZoom 0
                .maxZoom 18
                .onLongPress (fn [_ ^ll/LatLng point]
@@ -361,14 +375,15 @@
        .alignPositionOnUpdate align-position-on-update
        .followOnLocationUpdate maploc/FollowOnLocationUpdate.always
        .alignDirectionOnUpdate maploc/AlignOnUpdate.never)
-      (mcb/control-buttons :alignment m/Alignment.bottomRight
+      (map-control-buttons :alignment m/Alignment.bottomRight
                            :onMyLocation (align-on-current-pos-callback dms))
       (map/Scalebar
        .textStyle (m/TextStyle .color m/Colors.black .fontSize 14)
        .alignment m/Alignment.bottomLeft
        .length map/ScalebarLength.m)
       (mapcompass/MapCompass.cupertino .alignment m/Alignment.topLeft)
-      (new-current-center-marker current-pos-as-center? current-center)]))))
+      (new-current-center-marker current-pos-as-center? current-center)
+      (map-msg)]))))
 
 
 ;; Setup enhance gpx screen

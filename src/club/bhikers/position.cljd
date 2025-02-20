@@ -10,16 +10,17 @@
 
 ;; per device type location settings
 (defn location-settings []
-  (let [distance-filter (if debug-mode? 100 500) ; Update position every 500m...
+  (let [distance-filter (if debug-mode? 0 500) ; Update position every 500m...
+        interval-duration (if debug-mode?
+                            (Duration .seconds 5)
+                            (Duration .minutes 5)) ; Update position every 5minutes...
         accuracy geo/LocationAccuracy.low]
     (cond
       ;; kIsWeb must be checked first because platform on web is throwing errors
       foundation/kIsWeb (geo/LocationSettings .accuracy accuracy
                                               .distanceFilter distance-filter)
       (io/Platform.isAndroid) (geo/AndroidSettings .accuracy accuracy
-                                                   .intervalDuration (if debug-mode?
-                                                                       (Duration .seconds 30)
-                                                                       (Duration .minutes 5))
+                                                   .intervalDuration interval-duration
                                                    .distanceFilter distance-filter
                                                    .forceLocationManager true) ; use legacy location manager to avoid google play services requirement
       (io/Platform.isIOS) (geo/AppleSettings .accuracy accuracy
@@ -60,9 +61,6 @@
                           last-known-position (when (and service-enabled? (not foundation/kIsWeb))
                                                 (log "await for last known position")
                                                 (await (-> geo/Geolocator .getLastKnownPosition)))
-                          current-position (when service-enabled?
-                                             (log "await for current position")
-                                             (await (-> geo/Geolocator (.getCurrentPosition .locationSettings location-settings*))))
                           position-subscription (do
                                                   (log "listening on position stream source")
                                                   (->
@@ -76,9 +74,6 @@
                       (when last-known-position
                             (log "add last-known-position to stream controller sink: " last-known-position)
                             (-> stream-controller .-sink (.add last-known-position)))
-                      (when current-position
-                            (log "add current-position to stream control sink: " current-position)
-                            (-> stream-controller .-sink (.add current-position)))
                       (when status-stream-subscription (swap! cancel-functions conj #(.cancel status-stream-subscription)))
                       (when position-subscription (swap! cancel-functions conj #(.cancel position-subscription)))))
 
@@ -95,11 +90,13 @@
          (log "listening on position stream controller!")
          (try
            (let [permission (await (.checkPermission geo/Geolocator))]
+             (log (str "location permission is " permission))
              (if (== permission geo/LocationPermission.denied)
                (do
                  (-> stream-controller .-sink (.addError maploc/PermissionDeniedException))
                  (setup (await (->  geo/Geolocator .requestPermission))))
                (setup permission)))
+
            (catch geo/PermissionDefinitionsNotFoundException _
              (-> stream-controller .-sink (.addError maploc/IncorrectSetupException)))))))
     stream-controller))
