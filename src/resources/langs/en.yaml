@@ -48,7 +48,7 @@ about:
   description: Bhikers Club by ParaSitid
   legalese: 🪲 ParaSitid
 common:
-  close: close
+  close: Close
   permission-denied: permission permanently denied for
   bhiker_emoji: 🚴
   shelter_emoji: ☔
@@ -59,5 +59,6 @@ common:
   bakery_emoji: 🥪
   bikeshop_emoji: 🔧
   toilets_emoji: 🚽
+  radius: Radius
 notifications:
   title: Notifications

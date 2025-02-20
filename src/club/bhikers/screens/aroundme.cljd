@@ -7,6 +7,7 @@
            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
            ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
            [club.bhikers.lib.app :refer [supported-poi-types
+                                         max-pois-radius
                                          icicommencelaventure
                                          vertouplage]]
            [club.bhikers.lib.map :as map]
@@ -31,21 +32,33 @@
   (f/widget
    :get [:map-state
          m/Navigator]
-   :watch [{:keys [selected-poi-type]} map-state]
+   :watch [{:keys [selected-poi-type transient-radius]} map-state]
    m/Drawer
    (m/ListView
     .padding (m/EdgeInsets.all 2.0)
     .children
-    (map (fn [poi] (m/RadioListTile
-                    .title (m/Text (l10n-str (str "around_me.pois." poi)))
-                    .value poi
-                    .groupValue selected-poi-type
-                    .onChanged (fn [val]
-                                 (when (not= val (get @map-state :selected-poi-type))
-                                   (log "changed poi type to " val)
-                                   (swap! map-state assoc :selected-poi-type val))
-                                 (.pop navigator))))
-         supported-poi-types))))
+    (concat
+     (map (fn [poi] (m/RadioListTile
+                     .title (m/Text (l10n-str (str "around_me.pois." poi)))
+                     .value poi
+                     .groupValue selected-poi-type
+                     .onChanged (fn [val]
+                                  (when (not= val (get @map-state :selected-poi-type))
+                                    (log "changed poi type to " val)
+                                    (swap! map-state assoc :selected-poi-type val)
+                                    (.pop navigator)))))
+          supported-poi-types)
+     [(m/Row
+       .children
+       [(m/Text (l10n-str "radius"))
+        (m/Slider
+         .value transient-radius
+         .max max-pois-radius
+         .divisions 5
+         .label (str transient-radius "m")
+         .onChanged #(swap! map-state assoc :transient-radius (.round %))
+         .onChangeEnd (fn [_] (swap! map-state assoc :radius transient-radius)))])]))))
+
 
 ;; modal bottom sheet displaying info about a POI
 (defn around-me-show-poi-info [ctx poi]
