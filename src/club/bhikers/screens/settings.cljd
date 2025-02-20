@@ -5,7 +5,9 @@
            ["package:easy_localization/easy_localization.dart" :as l10n]
            [club.bhikers.screens.common :refer [app-bar drawer]]
            [club.bhikers.lib.utils :refer [l10n-str log]]
-           [club.bhikers.lib.app :refer [supported-locales default-locale]]
+           [club.bhikers.lib.app :refer [supported-locales default-locale
+                                         max-pois-radius
+                                         min-pois-radius]]
            [cljd.flutter :as f]))
 
 ;; Setup settings screen
@@ -23,14 +25,24 @@
            [(settings/SettingsGroup
              .title  (l10n-str "settings.general_group_title")
              .children
-             [(#/(settings/DropDownSettingsTile String)
+             [(settings/SliderSettingsTile
+               .leading (m/Icon m/Icons.adjust)
+               .settingKey "/general/pois_radius"
+               .title (l10n-str "common.radius")
+               .defaultValue 1000
+               .min min-pois-radius
+               .max max-pois-radius
+               .step 500)
+              (#/(settings/DropDownSettingsTile String)
                  .leading (m/Icon m/Icons.language)
                  .settingKey "/general/language"
                  .title  (l10n-str "settings.language")
                  .values (into {} (map (fn [lang] [lang (l10n-str (str "settings.langs." lang))])
                                        supported-locales))
                  .selected default-locale
-                 .onChange #(do (-> ctx l10n/BuildContextEasyLocalizationExtension (.setLocale (m/Locale %)))
+                 .onChange #(do (-> ctx
+                                    l10n/BuildContextEasyLocalizationExtension
+                                    (.setLocale (m/Locale %)))
                                 nil))])
 
             (settings/SettingsGroup
