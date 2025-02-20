@@ -15,7 +15,7 @@ rely only on geolocator lastknownposition + position stream as a workaround
 ** global ui
 *** DONE setup icon
 ** Around me
-*** TODO clusters of POI markers
+*** DONE clusters of POI markers
 *** DONE add radius slider
 *** DONE better end drawer for filters
 *** DONE add compass rotation icon on map

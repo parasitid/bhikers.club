@@ -6,6 +6,7 @@
            ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
            ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
+           ["package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart" :as cluster]
            [club.bhikers.lib.app :refer [supported-poi-types
                                          max-pois-radius
                                          icicommencelaventure
@@ -79,17 +80,33 @@
 ;; - return a widget of markers for each element returned
 ;; - if no response or error, return empty widget
 (defn around-me-pois-markers-widget []
-  (f/widget :context ctx :get [:map-state :overpass-api]
-            :watch [pois (dynamic-map-pois map-state overpass-api)]
-   (fmap/MarkerLayer
-    .markers (map #(fmap/Marker .point (ll/LatLng (get % "lat") (get % "lon"))
-                               .height 40
-                               .width 40
-                               .child (m/GestureDetector
-                                       .onTap (fn [] (around-me-show-poi-info ctx %))
-                                       .child (m/Icon m/Icons.location_pin
-                                                      .size 40)))
-                  pois))))
+  (f/widget
+   :context ctx :get [:map-state :overpass-api]
+   :watch [pois (dynamic-map-pois map-state overpass-api)]
+   (cluster/MarkerClusterLayerWidget
+    .options
+    (cluster/MarkerClusterLayerOptions
+     .maxClusterRadius 45
+     .size (m/Size 40 40)
+     .alignment m/Alignment.center
+     .padding (m/EdgeInsets.all 50)
+     .centerMarkerOnClick false
+     .maxZoom 15
+     .builder (fn [_ markers]
+                (f/widget
+                 (m/Container
+                  .decoration (m/BoxDecoration .borderRadius (m/BorderRadius.circular 20)
+                                               .color m/Colors.blue))
+                 (m/Center .child
+                           (m/Text (str (count markers))
+                                   .style (m/TextStyle .color m/Colors.white)))))
+     .markers (map #(fmap/Marker .point (ll/LatLng (get % "lat") (get % "lon"))
+                                 .height 40
+                                 .width 40
+                                 .child (m/GestureDetector
+                                         .onTap (fn [] (around-me-show-poi-info ctx %))
+                                         .child (m/Icon m/Icons.location_pin .size 40)))
+                   pois)))))
 
 
 ;; Setup around me main screen with Flutter Map,
