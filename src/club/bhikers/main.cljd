@@ -1,18 +1,18 @@
 (ns club.bhikers.main
   "Bhikers Club App by ParaSitid"
   (:require ["package:flutter/material.dart" :as m]
-           ["package:easy_localization/easy_localization.dart" :as l10n]
-           ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
-           ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
-           [club.bhikers.screens.aroundme :refer [around-me-screen]]
-           [club.bhikers.screens.settings :refer [settings-screen]]
-           [club.bhikers.screens.enhancegpx :refer [enhance-gpx-screen]]
-           [club.bhikers.screens.falldetector :refer [fall-detector-screen]]
-           [club.bhikers.lib.app :refer [supported-locales default-locale]]
-           [club.bhikers.lib.pois :refer [new-overpass-api]]
-           [club.bhikers.lib.utils :refer [log create-cache-store]]
-           [club.bhikers.lib.notifications :refer [debug-notif]]
-           [cljd.flutter :as f]))
+            ["package:easy_localization/easy_localization.dart" :as l10n]
+            ["package:easy_localization_loader/easy_localization_loader.dart" :as l10nassets]
+            ["package:flutter_settings_screens/flutter_settings_screens.dart" :as settings]
+            [club.bhikers.screens.aroundme :refer [around-me-screen]]
+            [club.bhikers.screens.settings :refer [settings-screen]]
+            [club.bhikers.screens.enhancegpx :refer [enhance-gpx-screen]]
+            [club.bhikers.screens.falldetector :refer [fall-detector-screen]]
+            [club.bhikers.lib.app :refer [supported-locales default-locale]]
+            [club.bhikers.lib.pois :refer [new-overpass-api]]
+            [club.bhikers.lib.utils :refer [log create-cache-store]]
+            [club.bhikers.lib.notifications :refer [debug-notif]]
+            [cljd.flutter :as f]))
 
 ;; Around me ( +/- 10/20km): POIs*
 ;; Enhance GPX: upload gpx and add POIs*

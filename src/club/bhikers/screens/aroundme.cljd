@@ -1,21 +1,20 @@
 (ns club.bhikers.screens.aroundme
-  "Bhikers Club App by ParaSitid"
-   (:require ["package:flutter/material.dart" :as m]
-           ["package:flutter_map/flutter_map.dart" :as fmap]
-           ["package:latlong2/latlong.dart" :as ll]
-           ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
-           ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
-           ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
-           ["package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart" :as cluster]
-           [club.bhikers.lib.app :refer [supported-poi-types
-                                         max-pois-radius
-                                         icicommencelaventure
-                                         vertouplage]]
-           [club.bhikers.lib.map :as map]
-           [club.bhikers.screens.common :refer [app-bar drawer]]
-           [club.bhikers.lib.pois :refer [dynamic-map-pois]]
-           [club.bhikers.lib.utils :refer [l10n-str log debug-mode?]]
-           [cljd.flutter :as f]))
+  (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter_map/flutter_map.dart" :as fmap]
+            ["package:latlong2/latlong.dart" :as ll]
+            ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
+            ["package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart" :as cmap]
+            ["package:flutter_map_compass/flutter_map_compass.dart" :as mapcompass]
+            ["package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart" :as cluster]
+            [club.bhikers.lib.app :refer [supported-poi-types
+                                          max-pois-radius
+                                          icicommencelaventure
+                                          vertouplage]]
+            [club.bhikers.lib.map :as map]
+            [club.bhikers.screens.common :refer [app-bar drawer]]
+            [club.bhikers.lib.pois :refer [dynamic-map-pois]]
+            [club.bhikers.lib.utils :refer [l10n-str log debug-mode?]]
+            [cljd.flutter :as f]))
 
 ;; Around me ( +/- 10/20km): POIs*
 ;; Enhance GPX: upload gpx and add POIs*
@@ -86,7 +85,7 @@
    (cluster/MarkerClusterLayerWidget
     .options
     (cluster/MarkerClusterLayerOptions
-     .maxClusterRadius 45
+     .maxClusterRadius 100
      .size (m/Size 40 40)
      .alignment m/Alignment.center
      .padding (m/EdgeInsets.all 50)

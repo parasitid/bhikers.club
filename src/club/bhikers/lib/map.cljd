@@ -1,15 +1,12 @@
 (ns club.bhikers.lib.map
-  "Zoom buttons widget"
   (:require ["package:flutter/material.dart" :as m]
-           ["package:flutter_settings_screens/flutter_settings_screens.dart"
-            :refer [Settings]]
             ["package:flutter_map/flutter_map.dart" :as fmap]
             ["package:geolocator/geolocator.dart" :as geo]
             ["package:flutter_map_location_marker/flutter_map_location_marker.dart" :as maploc]
             ["dart:async" :as async]
             [club.bhikers.lib.notifications :refer [debug-notif]]
-            [club.bhikers.lib.app :refer [default-poi-type]]
-            [club.bhikers.lib.utils :refer [log debug-mode?]]
+            [club.bhikers.lib.app :refer [selected-poi-type pois-radius]]
+            [club.bhikers.lib.utils :refer [log debug-mode? l10n-str]]
             [club.bhikers.lib.position
              :refer
              [new-position-stream-controller
@@ -19,21 +16,28 @@
             [cljd.flutter :as f]))
 
 
-
 (defn new-state []
-  (let [map-state (atom {:selected-poi-type default-poi-type
+  (let [map-state (atom {:selected-poi-type @selected-poi-type
                          :current-pos nil
                          :current-center nil
                          :current-pos-as-center? true
-                         :transient-radius (#/(.getValue double) Settings "/general/pois_radius" .defaultValue 1000)
-                         :radius (#/(.getValue double) Settings "/general/pois_radius" .defaultValue 1000)
+                         :transient-radius @pois-radius
+                         :radius @pois-radius
                          :align-position-on-update maploc/AlignOnUpdate.always})]
     (when debug-mode?
-      (add-watch map-state :map-message
-                 (fn [_ _ old-state new-state]
-                   (when (not= (select-keys old-state [:current-pos])
-                               (select-keys new-state [:current-pos]))
-                     (swap! map-state assoc :message (str "position is " (get new-state :current-pos)))))))
+      (add-watch
+       map-state :map-message
+       (fn [_ _ old-state new-state]
+         (let [old-pos (get old-state :current-pos)
+               new-pos (get new-state :current-pos)
+               msg  (get new-state :message)
+               ulocstr (l10n-str "around_me.unknown_location")]
+           (when (not= old-pos new-pos)
+             (cond
+               ;; assoc unknown loc message only if map message is empty
+               (and (empty? msg) (not new-pos)) (swap! map-state assoc :message ulocstr)
+               ;; dissoc message only if message was unknown loc
+               (and (= msg ulocstr) new-pos) (swap! map-state dissoc :message)))))))
     map-state))
 
 (defprotocol disposable-streams
@@ -73,11 +77,11 @@
                    (let [{:keys [current-pos]} @map-state
                          lon (/ (.floor (* lon0 100000)) 100000) ;; round lat lon precision to 5 decimal digits
                          lat (/ (.floor (* lat0 100000)) 100000)]
-                   (log "position event from stream: " lat " " lon)
-                     (when (not= [lat lon] current-pos)
-                       (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
-                       ;; swap position before refreshing pois
-                       (swap! map-state assoc :current-pos [lat lon])))))]
+                    (log "position event from stream: " lat " " lon)
+                    (when (not= [lat lon] current-pos)
+                      (debug-notif "new position fetched from stream: " lat " " lon " vs " @map-state)
+                      ;; swap position before refreshing pois
+                      (swap! map-state assoc :current-pos [lat lon])))))]
 
         (swap! map-state assoc :streamz
                {:psc psc :ps ps :apsc apsc :lms lms :pss pss}))
@@ -122,7 +126,7 @@
    :get [:map-state]
    :watch [{:keys [message]} map-state]
    (m/Align .alignment alignment)
-   (if message
+   (if (not-empty message)
      (f/widget
       (m/Padding .padding (m/EdgeInsets.only .bottom bottom-padding))
       (f/widget

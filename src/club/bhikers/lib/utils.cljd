@@ -26,3 +26,5 @@
 
 (defn create-cache-store ^cache/MemCacheStore [max-nb-of-entries max-entry-size]
   (cache/MemCacheStore .maxSize (* max-nb-of-entries max-entry-size) .maxEntrySize max-entry-size))
+
+(defn str->int [s min max] (let [num (int/tryParse s)] (if (and num (< min num max)) num nil)))

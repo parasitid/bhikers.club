@@ -7,6 +7,10 @@ settings:
   language: Langue
   general_group_title: Général
   screen_title: Paramètres
+  default_poi_type: Type de POI par défaut
+  advanced_group_title: Avancé
+  api_query_timeout: délai d'attente de la requête api (en secondes)
+  timeout_input_validation_error: Le délai d'attente doit être un entier valide tel que 2 < délai d'attente < 10
   langs:
     en: Anglais
     fr: Français
@@ -23,6 +27,7 @@ around_me:
   screen_title: Autour de moi
   description: Points d'intérêt autour de ma position GPS actuelle
   no_permission: Veuillez accorder l'autorisation de localisation
+  unknown_location: Emplacement actuel inconnu...
   poi_types:
     bhikers: Bhikers
     shelters: Abris
@@ -39,6 +44,6 @@ about:
 common:
   close: Fermer
   permission-denied: autorisation définitivement refusée pour
-  radius: Rayon
+  radius: Rayon de recherche
 notifications:
   title: Notifications

@@ -1,5 +1,4 @@
 (ns club.bhikers.screens.common
-  "Bhikers Club App by ParaSitid"
   (:require ["package:flutter/material.dart" :as m]
             [club.bhikers.lib.utils :refer [l10n-str]]
             [club.bhikers.lib.notifications
@@ -7,25 +6,29 @@
              [notifications
               dismiss-notif
               dismiss-all-notifs]]
-            [cljd.flutter :as f]))
+           [club.bhikers.lib.app :refer [feat-enhance-gpx?
+                                         feat-fall-detector?]]
+           [cljd.flutter :as f]))
 
 ;; Setup main drawer with app routes
 (defn drawer []
   (f/widget
    :get [m/Navigator
          m/Theme]
-   :let [drawer-routes [["/around-me"
-                         (l10n-str "around_me.screen_title")
-                         m/Icons.location_pin]
-                        ["/enhance-gpx"
-                         (l10n-str "enhance_gpx.screen_title")
-                         m/Icons.hotel_class_outlined]
-                        ["/fall-detector"
-                         (l10n-str "fall_detector.screen_title")
-                         m/Icons.crisis_alert]
-                        ["/settings"
-                         (l10n-str "settings.screen_title")
-                         m/Icons.settings]]]
+   :let [drawer-routes (concat[["/around-me"
+                                (l10n-str "around_me.screen_title")
+                                m/Icons.location_pin]]
+                              (if (not feat-enhance-gpx?) []
+                                  [["/enhance-gpx"
+                                    (l10n-str "enhance_gpx.screen_title")
+                                    m/Icons.hotel_class_outlined]])
+                              (if (not feat-fall-detector?) []
+                                  [["/fall-detector"
+                                    (l10n-str "fall_detector.screen_title")
+                                    m/Icons.crisis_alert]])
+                              [["/settings"
+                                (l10n-str "settings.screen_title")
+                                m/Icons.settings]])]
    m/Drawer
     (m/ListView
      .padding (m/EdgeInsets.all 2.0)

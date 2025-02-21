@@ -30,7 +30,7 @@ rely only on geolocator lastknownposition + position stream as a workaround
 *** TODO show "location currently unknown" overlay message
 *** TODO allow custom overpass tag filter
 ** Settings
-*** TODO setup around me defaults in settings
+*** DONE setup around me defaults in settings
 ** About
 *** TODO make credits page
 *** TODO insert frugal app manifesto
