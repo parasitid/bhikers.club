@@ -45,12 +45,12 @@ rely only on geolocator lastknownposition + position stream as a workaround
 *** TODO automate build, release and publish android app on github
 *** TODO automate build, release and publish android app on ?store?
 *** TODO automate build, release and publish ios app on ?store?
-** TODO choose license
+** DONE choose license
 
 * Development
 
 * Others
 ** Frugal App Manifesto
-*** TODO write v0
+*** DONE write v0
 ** The Bhikers Club Good Fellow
-*** TODO write v0
+*** DONE write v0
