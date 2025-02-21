@@ -18,6 +18,8 @@
 - ❌ **Recomendar lugares al club** – *Próximamente!*
 
 ## 📜 Manifiestos
-- 🚴 [Manifiesto del Buen Compañero del Bhikers Club](BHIKERS_CLUB_GOOD_FELLOW.es.md)
-- 📱 [El Manifiesto de las Aplicaciones Frugales](FRUGALAPP_MANIFESTO.es.md)
+- 🚴 [Manifiesto del Buen Compañero del Bhikers Club](src/resources/manifestos/BHIKERS_CLUB_GOOD_FELLOW.es.md)
+- 📱 [El Manifiesto de las Aplicaciones Frugales](src/resources/manifestos/FRUGALAPP_MANIFESTO.es.md)
 
+## 🙏 Agradecimientos Especiales
+Queremos expresar nuestra gratitud a las increíbles comunidades de Clojure y ClojureDart. ¡Gracias por su apoyo!

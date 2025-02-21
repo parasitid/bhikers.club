@@ -18,7 +18,9 @@
 - ❌ **Orte dem Club empfehlen** – *Bald verfügbar!*
 
 ## 📜 Manifeste
-- 🚴 [Bhikers Club Good Fellow Manifest](BHIKERS_CLUB_GOOD_FELLOW.de.md)
-- 📱 [Das Frugal App Manifest](FRUGALAPP_MANIFESTO.de.md)
+- 🚴 [Bhikers Club Good Fellow Manifest](src/resources/manifestos/BHIKERS_CLUB_GOOD_FELLOW.de.md)
+- 📱 [Das Frugal App Manifest](src/resources/manifestos/FRUGALAPP_MANIFESTO.de.md)
 
+## 🙏 Besondere Dankbarkeit
+Wir möchten den großartigen Clojure- und ClojureDart-Communities unseren Dank aussprechen. Vielen Dank für eure Unterstützung!
 
